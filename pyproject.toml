@@ -1,0 +1,20 @@
+[project]
+name = "MQGA"
+dynamic = ["version"]
+description = "Mostly a QQ Group Assistant"
+authors = [
+    {name = "线卷",email = ""},
+    {name = "迷你哆啦",email = ""},
+    {name = "小女不才只会用膳",email = ""},
+]
+dependencies = []
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+version = { source = "file", path = "src/mqga/__version__.py" }
