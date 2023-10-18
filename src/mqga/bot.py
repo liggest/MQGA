@@ -27,3 +27,7 @@ class Bot:
     async def stop(self):
         self._ended.set()
         log.info("Bot 准备停止…")
+
+    def run(self):
+        """ 入口 """  # TODO 暂定
+        asyncio.run(self.init())
