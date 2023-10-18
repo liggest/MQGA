@@ -2,10 +2,13 @@
 from functools import cached_property
 import asyncio
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mqga.bot import Bot
 
 class API:
 
-    def __init__(self, bot):    # TODO
+    def __init__(self, bot: Bot):
         self.bot = bot
         self._token = ""
         self._expire_time = 0
@@ -14,14 +17,14 @@ class API:
     def header(self):
         return {
             "Authorization": f"QQBot {self._token}" if self._token else "",
-            "X-Union-Appid": "{BOT_APPID}"         # TODO
+            "X-Union-Appid": f"{self.bot.APPID}"
         }
 
     @cached_property
     def token_data(self):
         return {
-            "appId": "{BOT_APPID}",                # TODO
-            "clientSecret": "{BOT_CLIENTECRET}",   # TODO
+            "appId": f"{self.bot.APPID}",
+            "clientSecret": f"{self.bot.APP_SECRET}",
         }
 
     async def get(self, url, params, **kw):        # TODO
@@ -38,8 +41,8 @@ class API:
 
     async def token_loop(self):
         print("找腾讯要访问符去了")    # TODO 换成 log
-        end = False                 # TODO 真正的 end
-        while not end:
+        end = self.bot._ended
+        while not end.is_set():
             sleep_time = await self.fetch_token()
             sleep_time -= 50  # 过期前就获取新的
             await asyncio.sleep(sleep_time)
