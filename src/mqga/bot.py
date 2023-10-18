@@ -1,6 +1,7 @@
 
 from mqga.api import API
 from mqga.ws import WS
+from mqga.log import log
 
 import asyncio
 
@@ -14,6 +15,7 @@ class Bot:
         self.APP_SECRET = ""
 
     async def init(self):
+        log.info("Bot 初始化，MQGA！")
         self._ended = asyncio.Event()
 
         assert self.APPID
@@ -24,3 +26,4 @@ class Bot:
 
     async def stop(self):
         self._ended.set()
+        log.info("Bot 准备停止…")
