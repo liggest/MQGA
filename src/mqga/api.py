@@ -1,70 +1,58 @@
-import os
-import sys
-import logging
-from time import strftime
+from __future__ import annotations
 
-PATH = os.path.abspath('.') + '/log/'
-DEFAULT_LOGGER_NAME = "MQGA"
+from functools import cached_property
+import asyncio
 
-# \033[3xm x的取值范围0-7，分别对应下面几种颜色
-BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mqga.bot import Bot
 
-COLORS = {
-    'WARNING': YELLOW,
-    'INFO': GREEN,
-    'DEBUG': BLUE,
-    'CRITICAL': RED,
-    'ERROR': RED
-}
-"""LOGLevel = {
-    0:'NOSET',
-    10:'DEBUG',
-    20:'INFO',
-    30:'WARNING',
-    40:'ERROR',
-    50:'CRITICAL'
-}"""
+from mqga.log import log
 
-DATEFMT = '%Y-%m-%d %H:%M:%S'
-Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m-> %(filename)s:%(lineno)s]\033[0m %(asctime)s: %(message)s"
-File_FMT = "[%(levelname)s -> %(filename)s:%(lineno)s] %(asctime)s: %(message)s"
+class API:
 
-# 变更等级颜色
-class ColoredFormatter(logging.Formatter):
-    def __init__(self, msg):
-        logging.Formatter.__init__(self, msg)
+    def __init__(self, bot: Bot):
+        self.bot = bot
+        self._token = ""
+        self._expire_time = 0
 
-    def format(self, record):
-        levelname = record.levelname
-        if levelname in COLORS:
-            levelname_color = f"\033[1;3{COLORS[levelname]}m{levelname}\033[0m"
-            record.levelname = levelname_color
-        return logging.Formatter.format(self, record)
+    @cached_property
+    def header(self):
+        return {
+            "Authorization": f"QQBot {self._token}" if self._token else "",
+            "X-Union-Appid": f"{self.bot.APPID}"
+        }
 
+    @cached_property
+    def _token_data(self):
+        return {
+            "appId": f"{self.bot.APPID}",
+            "clientSecret": f"{self.bot.APP_SECRET}",
+        }
 
-class MQGALog(object):
-    def __init__(self):
-        if not os.path.exists(PATH):
-            os.mkdir(PATH)
-        self.logger = logging.getLogger(DEFAULT_LOGGER_NAME)
-        self.console_formatter = ColoredFormatter(Console_FMT)
-        self.file_formatter = logging.Formatter(fmt=File_FMT, datefmt=DATEFMT)
-        self.log_filename = '{0}{1}.log'.format(PATH, strftime("%Y-%m-%d-%H"))
+    async def get(self, url, params, **kw):        # TODO
+        raise NotImplementedError
 
-        self.logger.addHandler(self.get_file_handler(self.log_filename))
-        self.logger.addHandler(self.get_console_handler())
+    async def post(self, url, data, **kw):         # TODO
+        raise NotImplementedError
 
-        self.logger.setLevel(logging.DEBUG)
+    async def _fetch_token(self):
+        data = await self.post(r"https://bots.qq.com/app/getAppAccessToken", self._token_data)
+        self._token, self._expire_time = data["access_token"], int(data["expires_in"])
+        del self.header
+        log.info(f"拿到了新访问符，{self._expire_time} 秒后要再拿 :(")
+        return self._expire_time
 
-    def get_file_handler(self, filename):
-        filehandler = logging.FileHandler(filename, encoding="utf-8")
-        filehandler.setFormatter(self.file_formatter)
-        return filehandler
+    async def _token_loop(self):
+        log.info("找腾讯要访问符去了")
+        self.header = {}  # 一开始没有 token，所以也没有 header
+        end = self.bot._ended
+        while not end.is_set():
+            sleep_time = await self._fetch_token()
+            sleep_time -= 50  # 过期前就获取新的
+            await asyncio.sleep(sleep_time)
 
+    async def init(self):
+        log.info(f"API 初始化")
+        asyncio.create_task(self._token_loop())
 
-    def get_console_handler(self):
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(self.console_formatter)
-        return console_handler
-   
-log = MQGALog().logger
