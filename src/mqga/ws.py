@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from mqga.bot import Bot
 
 from pydantic import BaseModel
+import websockets
 
 from mqga.log import log
 
