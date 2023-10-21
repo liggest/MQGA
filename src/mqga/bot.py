@@ -1,6 +1,6 @@
 
-from mqga.api import API
-from mqga.ws import WS
+from mqga.connection.api import API
+from mqga.connection.ws import WS
 from mqga.log import log
 
 import asyncio
@@ -25,11 +25,13 @@ class Bot:
 
     @property
     def BASE_URL(self):
-        raise NotImplementedError  # TODO
+        raise NotImplementedError
+        # return r"https://sandbox.api.sgroup.qq.com"
     
     @property
     def TIMEOUT(self):
-        raise NotImplementedError  # TODO
+        raise NotImplementedError
+        # return None
 
     async def init(self):
         log.info("Bot 初始化，MQGA！")

@@ -17,6 +17,7 @@ class API:
     def __init__(self, bot: Bot):
         self.bot = bot
         self._token = ""
+        
         self._expire_time = 0
         self._client: httpx.AsyncClient = None
 
