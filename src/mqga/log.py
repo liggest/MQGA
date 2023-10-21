@@ -26,8 +26,9 @@ COLORS = {
 }"""
 
 DATEFMT = '%Y-%m-%d %H:%M:%S'
+Default_FMT = "\033[1;38m[\033[0m%(levelname)s\033[1;38m]\033[0m %(message)s"
 Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m-> %(filename)s:%(lineno)s]\033[0m %(message)s"
-File_FMT = "[%(levelname)s -> %(filename)s:%(lineno)s] %(message)s"
+File_FMT = "[%(levelname)s ->%(filename)s:%(lineno)s] %(asctime)s: %(message)s"
 
 # 变更等级颜色
 class ColoredFormatter(logging.Formatter):
@@ -47,12 +48,13 @@ class MQGALog(object):
         if not os.path.exists(PATH):
             os.mkdir(PATH)
         self.logger = logging.getLogger(DEFAULT_LOGGER_NAME)
-        self.console_formatter = ColoredFormatter(Console_FMT)
         self.file_formatter = logging.Formatter(fmt=File_FMT, datefmt=DATEFMT)
-        self.log_filename = '{0}{1}.log'.format(PATH, strftime("%Y-%m-%d-%H"))
-
-        self.logger.addHandler(self.get_file_handler(self.log_filename))
-        self.logger.addHandler(self.get_console_handler())
+        self.log_filename = '{0}{1}.log'.format(PATH, strftime("%Y-%m-%d"))
+    
+        self.file_handler = self.get_file_handler(self.log_filename)
+        self.std_handler = self.get_console_handler(False)
+        self.logger.addHandler(self.file_handler)
+        self.logger.addHandler(self.std_handler)
 
         self.logger.setLevel(logging.DEBUG)
 
@@ -62,9 +64,21 @@ class MQGALog(object):
         return filehandler
 
 
-    def get_console_handler(self):
+    def get_console_handler(self, is_debug: bool):
+        if is_debug:
+            fmt = Console_FMT
+        else:
+            fmt = Default_FMT
+        console_formatter = ColoredFormatter(fmt)
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(self.console_formatter)
+        console_handler.setFormatter(console_formatter)
         return console_handler
-   
-log = MQGALog().logger
+    
+    def set_debug(self, is_debug: bool):
+        self.logger.removeHandler(self.std_handler)
+        self.std_handler = self.get_console_handler(is_debug)
+        self.logger.addHandler(self.std_handler)
+
+logset = MQGALog()
+
+log = logset.logger
