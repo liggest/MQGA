@@ -13,7 +13,8 @@ class WS:
 
     def __init__(self, bot:Bot):
         self.bot = bot
-        raise NotImplementedError   # TODO
+        log.info(NotImplementedError)
+        # raise NotImplementedError   # TODO
 
     async def init(self):
         log.info(f"WS 初始化")

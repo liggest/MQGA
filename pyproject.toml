@@ -7,7 +7,11 @@ authors = [
     {name = "迷你哆啦",email = ""},
     {name = "小女不才只会用膳",email = ""},
 ]
-dependencies = []
+dependencies = [
+    "tomli==2.0.1",
+    "tomli-w>=1.0.0",
+    "pydantic>=2.4.2",
+]
 requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
