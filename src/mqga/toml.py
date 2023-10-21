@@ -41,7 +41,8 @@ class Init():
             config_file = args.config
         if os.path.exists(config_file):
             with open(config_file, "rb") as f:
-                data = tomli.load(f).get("cofig", {})
+                data = tomli.load(f)
+                data = data.get("config", {})
                 self.toml.config.AppID = data.get("AppID",'')
                 self.toml.config.Token = data.get("Token",'')
                 self.toml.config.Secret = data.get("Secret",'')
