@@ -27,8 +27,8 @@ class Config(BaseModel):
     Secret: str = ''
   
 class Toml(BaseModel):
-    Project: Project = Project()
-    Config: Config = Config()
+    project: Project = Project()
+    config: Config = Config()
 
 
 
@@ -42,20 +42,20 @@ class Init():
         if os.path.exists(config_file):
             with open(config_file, "rb") as f:
                 data = tomli.load(f).get("cofig", {})
-                self.toml.Config.AppID = data.get("AppID",'')
-                self.toml.Config.Token = data.get("Token",'')
-                self.toml.Config.Secret = data.get("Secret",'')
+                self.toml.config.AppID = data.get("AppID",'')
+                self.toml.config.Token = data.get("Token",'')
+                self.toml.config.Secret = data.get("Secret",'')
         elif args.config:
             log.warning(" 未找到config文件")
         if args.dump:
             save_file = args.dump
         if args.appid:
-            self.toml.Config.AppID = args.appid
+            self.toml.config.AppID = args.appid
         if args.token:
-            self.toml.Config.Token = args.token
+            self.toml.config.Token = args.token
         if args.secret:
-            self.toml.Config.Secret = args.secret
-        if not self.toml.Config.AppID or not self.toml.Config.Secret:
+            self.toml.config.Secret = args.secret
+        if not self.toml.config.AppID or not self.toml.config.Secret:
             log.exception("appid, secret 必须输入才可使用该BOT")
             sys.exit(1)
         if args.config or not os.path.exists(save_file):
@@ -65,4 +65,4 @@ class Init():
             log.info("config文件已保存至: %s" % save_file)
         
         
-config = Init(args).toml.Config
+config = Init(args).toml.config
