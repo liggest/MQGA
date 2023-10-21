@@ -1,7 +1,6 @@
 
 from mqga.api import API
 from mqga.ws import WS
-from mqga.toml import config
 from mqga.log import log
 
 import asyncio
@@ -12,8 +11,25 @@ class Bot:
     def __init__(self):
         self._api = API(self)
         self._ws = WS(self)
-        self.APPID = config.AppID
-        self.APP_SECRET = config.Secret
+
+        from mqga.toml import config  # 暂时放在这里，让它在 bot 初始化的时候再加载
+        self.config = config
+
+    @property
+    def APPID(self):
+        return self.config.AppID
+
+    @property
+    def APP_SECRET(self):
+        return self.config.Secret
+
+    @property
+    def BASE_URL(self):
+        raise NotImplementedError  # TODO
+    
+    @property
+    def TIMEOUT(self):
+        raise NotImplementedError  # TODO
 
     async def init(self):
         log.info("Bot 初始化，MQGA！")
