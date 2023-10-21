@@ -16,7 +16,6 @@ class WS:
 
     def __init__(self, bot:Bot):
         self.bot = bot
-        log.info(NotImplementedError)
         # raise NotImplementedError   # TODO
 
     async def init(self):

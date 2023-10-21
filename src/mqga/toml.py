@@ -1,6 +1,6 @@
-
+from __future__ import annotations
 from mqga.__version__ import __version__
-from mqga.args import args
+from mqga.args import parser, args
 from mqga.log import log
 
 import os
@@ -12,12 +12,12 @@ from pydantic import BaseModel
 class Project(BaseModel):
     name: str = 'MQGA'
     version: str = __version__
-    authors: list = ['Liggest','duolanda','liuyu.fang']
+    authors: list = ['liggest','duolanda','liuyu.fang']
     description: str = 'Mostly a QQ Group Assistant'
     address: str = 'https://github.com/liggest/MQGA'
     license: str = 'MIT'
     license_file: str = 'LICENSE'
-    copyright: str = 'Copyright (c) 2021 Liggest'
+    copyright: str = 'Copyright (c) 2021 liggest'
     
 
 
@@ -41,13 +41,12 @@ class Init():
             config_file = args.config
         if os.path.exists(config_file):
             with open(config_file, "rb") as f:
-                data = tomli.load(f)
-                data = data.get("config", {})
+                data:dict = tomli.load(f).get("config", {})
                 self.toml.config.AppID = data.get("AppID",'')
                 self.toml.config.Token = data.get("Token",'')
                 self.toml.config.Secret = data.get("Secret",'')
         elif args.config:
-            log.warning(" 未找到config文件")
+            log.warning("未找到config文件")
         if args.dump:
             save_file = args.dump
         if args.appid:
@@ -57,7 +56,8 @@ class Init():
         if args.secret:
             self.toml.config.Secret = args.secret
         if not self.toml.config.AppID or not self.toml.config.Secret:
-            log.exception("appid, secret 必须输入才可使用该BOT")
+            log.error("appid, secret 必须输入才可使用该BOT")
+            parser.print_help()
             sys.exit(1)
         if args.config or not os.path.exists(save_file):
             data = self.toml.model_dump()

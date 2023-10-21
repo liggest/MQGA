@@ -13,5 +13,3 @@ parser.add_argument('-D', '--debug', action='store_true', help='开启debug模�
 
 args = parser.parse_args()
 
-if args.debug:
-    logset.set_debug(args.debug)
