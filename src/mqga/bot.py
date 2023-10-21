@@ -1,6 +1,7 @@
 
 from mqga.api import API
 from mqga.ws import WS
+from mqga.toml import config
 from mqga.log import log
 
 import asyncio
@@ -11,8 +12,8 @@ class Bot:
     def __init__(self):
         self._api = API(self)
         self._ws = WS(self)
-        self.APPID = ""
-        self.APP_SECRET = ""
+        self.APPID = config.AppID
+        self.APP_SECRET = config.Secret
         self.BASE_URL = None
         self.TIMEOUT = None
 
