@@ -12,12 +12,12 @@ from pydantic import BaseModel
 class Project(BaseModel):
     name: str = 'MQGA'
     version: str = __version__
-    authors: tuple = "Liggest","duolanda","liuyu.fang",
-    description: str = "Mostly a QQ Group Assistant",
-    address: str = "https://github.com/liggest/MQGA",
-    license: str = "MIT",
-    copyright: str = "Copyright (c) 2021 Liggest",
-    license_file: str = "LICENSE",
+    authors: list = ['Liggest','duolanda','liuyu.fang']
+    description: str = 'Mostly a QQ Group Assistant'
+    address: str = 'https://github.com/liggest/MQGA'
+    license: str = 'MIT'
+    license_file: str = 'LICENSE'
+    copyright: str = 'Copyright (c) 2021 Liggest'
     
 
 
