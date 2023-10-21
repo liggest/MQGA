@@ -13,6 +13,8 @@ class Bot:
         self._ws = WS(self)
         self.APPID = ""
         self.APP_SECRET = ""
+        self.BASE_URL = None
+        self.TIMEOUT = None
 
     async def init(self):
         log.info("Bot 初始化，MQGA！")
