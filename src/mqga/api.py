@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.bot import Bot
 
+import httpx
+
 from mqga.log import log
 
 class API:
