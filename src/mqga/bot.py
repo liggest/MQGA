@@ -1,7 +1,6 @@
 
 from mqga.api import API
 from mqga.ws import WS
-from mqga.args import *
 from mqga.log import log
 
 import asyncio
@@ -10,12 +9,12 @@ class Bot:
     """ 统一管理连接、消息处理等，并提供一些方法来调用 api """
     
     def __init__(self):
+        from mqga.toml import config  # 暂时放在这里，让它在 bot 初始化的时候再加载
+        self.config = config
 
         self._api = API(self)
         self._ws = WS(self)
 
-        from mqga.toml import config  # 暂时放在这里，让它在 bot 初始化的时候再加载
-        self.config = config
 
     @property
     def APPID(self):
