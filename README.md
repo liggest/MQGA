@@ -22,24 +22,22 @@ pdm install
 ```bash
 pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
 
-  -D    enable debug-level log output
+  -D    
+        enable debug-level log output
   -a string
-        qq appid
+        qq 机器人ID
+  -s string
+        qq 机器人令牌
+  -t string
+        qq 机器人密钥
   -c string
         load from config
-  -h    print this help
-  -public
+  -h    
+        print this help
+  -p
         only listen to public intent
-  -s string
-        qq secret
-  -sandbox
+  -b
         run in sandbox api
-  -save string
+  -d string
         save bot config to filename (eg. config.yaml)
-  -shardcount uint
-        shard count
-  -shardindex uint
-        shard index
-  -t string
-        qq api token
 ```
