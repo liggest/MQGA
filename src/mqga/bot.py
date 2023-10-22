@@ -1,8 +1,8 @@
 
 from mqga.connection.api import API
 from mqga.connection.ws import WS
-from mqga.args import args
-from mqga.log import logset,log
+from mqga.args import *
+from mqga.log import log
 
 
 import asyncio
@@ -11,9 +11,6 @@ class Bot:
     """ 统一管理连接、消息处理等，并提供一些方法来调用 api """
     
     def __init__(self):
-        if args.debug:  # 设置log输出样式
-            logset.set_debug()
-        log.debug("已进入debug mode")
 
         self._api = API(self)
         self._ws = WS(self)
