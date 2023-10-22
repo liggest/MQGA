@@ -56,7 +56,7 @@ class MQGALog(object):
         self.logger.addHandler(self.file_handler)
         self.logger.addHandler(self.std_handler)
 
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.NOTSET)
 
     def get_file_handler(self, filename):
         filehandler = logging.FileHandler(filename, encoding="utf-8")
@@ -74,9 +74,10 @@ class MQGALog(object):
         console_handler.setFormatter(console_formatter)
         return console_handler
     
-    def set_debug(self, is_debug: bool):
+    def set_debug(self):
+        self.logger.setLevel(logging.DEBUG)
         self.logger.removeHandler(self.std_handler)
-        self.std_handler = self.get_console_handler(is_debug)
+        self.std_handler = self.get_console_handler(True)
         self.logger.addHandler(self.std_handler)
 
 logset = MQGALog()
