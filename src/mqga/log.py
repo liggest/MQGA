@@ -56,7 +56,7 @@ class MQGALog(object):
         self.logger.addHandler(self.file_handler)
         self.logger.addHandler(self.std_handler)
 
-        self.logger.setLevel(logging.NOTSET)
+        self.logger.setLevel(logging.INFO)
 
     def get_file_handler(self, filename):
         filehandler = logging.FileHandler(filename, encoding="utf-8")
