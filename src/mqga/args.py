@@ -1,4 +1,6 @@
 
+from mqga.log import logset,log
+
 import argparse
 
 parser = argparse.ArgumentParser(description="MQGA Process argparse:")
@@ -12,3 +14,7 @@ parser.add_argument('-d', '--dump', type=str, help='导出config信息到指定�
 parser.add_argument('-D', '--debug', action='store_true', help='开启debug模式')
 
 args = parser.parse_args()
+
+if args.debug:  # 设置log输出样式
+    logset.set_debug()
+    log.debug("已进入debug mode")
