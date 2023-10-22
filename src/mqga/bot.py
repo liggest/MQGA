@@ -27,20 +27,17 @@ class Bot:
 
     @property
     def BASE_URL(self):
-        raise NotImplementedError
-        # return r"https://sandbox.api.sgroup.qq.com"
+        # raise NotImplementedError
+        return r"https://sandbox.api.sgroup.qq.com"
     
     @property
     def TIMEOUT(self):
-        raise NotImplementedError
-        # return None
+        # raise NotImplementedError
+        return None
 
     async def init(self):
         log.info("Bot 初始化，MQGA！")
         self._ended = asyncio.Event()
-
-        assert self.APPID
-        assert self.APP_SECRET
 
         await self._api.init()
         await self._ws.init()
@@ -49,6 +46,18 @@ class Bot:
         self._ended.set()
         log.info("Bot 准备停止…")
 
+    async def _run(self):
+        async with self._api, self._ws, self:
+            await self.init()
+            await self._ended.wait()
+
+    async def __aenter__(self):
+        # 并不在这里初始化，而是在 bot 初始化时初始化
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.stop()
+
     def run(self):
         """ 入口 """  # TODO 暂定
-        asyncio.run(self.init())
+        asyncio.run(self._run())

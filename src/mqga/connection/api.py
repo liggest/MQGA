@@ -12,6 +12,23 @@ import httpx
 
 from mqga.log import log
 
+class APIError(Exception):
+
+    def __init__(self, data:dict):
+        self._data=data
+        if self.message:
+            super().__init__(self.code, self.message)
+        else:
+            super().__init__(self.code)
+
+    @property
+    def code(self):
+        return self._data["code"]
+
+    @property
+    def message(self):
+        return self._data.get("message")
+
 class API:
 
     def __init__(self, bot: Bot):
@@ -50,13 +67,27 @@ class API:
     def _base_url(self):
         return self.bot.BASE_URL
 
-    async def get(self, api:str, params:dict=None, timeout:float=httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _get(self, api:str, params:dict=None, timeout:float=httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
-        return (await self._client.get(api, params=params, timeout=timeout, **kw)).json()
+        return self._handle_response(await self._client.get(api, params=params, timeout=timeout, **kw))
 
-    async def post(self, api:str, data:dict, timeout:float=httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post(self, api:str, data:dict, timeout:float=httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
-        return (await self._client.post(api, json=data, timeout=timeout, **kw)).json()
+        return self._handle_response(await self._client.post(api, json=data, timeout=timeout, **kw))
+
+    def _handle_response(self, response:httpx.Response):
+        http_error = None
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            http_error = e
+        data:dict = response.json()
+        if (data and "code" in data):
+            if http_error:
+                raise APIError(data) from http_error
+            else:
+                raise APIError(data)
+        return data
 
     async def _ensure_token(self):
         if self._token:
@@ -109,18 +140,23 @@ class API:
     
     async def init(self):
         log.info("API 初始化")
+        self.header = {}  # 一开始没有 token，所以也没有 header
 
-    async def exit(self):
+    async def stop(self):
         if "_token_task" in self.__dict__:  # 有点丑，用来判断 _token_task 是否存在
             # 用 hasattr 的话，没有任务也会执行一遍创一个出来
             self._token_task.cancel()
         if self._client:
             await self._client.aclose()
-        log.info("API 退出")
+        log.info("API 停止")
 
     async def __aenter__(self):
-        await self.init()
+        # 并不在这里初始化，而是在 bot 初始化时初始化
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.exit()
+        await self.stop()
+
+    async def ws_url(self) -> str:
+        rj = await self._get("gateway")
+        return rj["url"]

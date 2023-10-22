@@ -1,7 +1,9 @@
 
-from pydantic import BaseModel, Field
+from typing import Annotated, Literal, Any
 
-from mqga.connection.constant import OpCode, Intents, EventType, Event
+from pydantic import BaseModel, Field, TypeAdapter
+
+from mqga.connection.constant import OpCode, Intents, EventType
 
 class Payload(BaseModel):
     op: OpCode
@@ -11,7 +13,7 @@ class HelloData(BaseModel):
     heartbeat_interval: int
 
 class HelloPayload(Payload):
-    op: OpCode = OpCode.Hello
+    op: Literal[OpCode.Hello] = OpCode.Hello
     d: HelloData
     """ 数据 """
 
@@ -19,19 +21,19 @@ class IdentifyData(BaseModel):
     token: str
     intents: Intents
     shard: tuple[int, int] = (0, 1)
-    properties: dict[str] = Field(default={
+    properties: dict[str, Any] = Field(default={
         "bot": False,
         "human": True,
         "0.1 + 0.2 ==": 0.1 + 0.2
     })
 
 class IdentifyPayload(Payload):
-    op: OpCode = OpCode.Identify
+    op: Literal[OpCode.Identify] = OpCode.Identify
     d: IdentifyData
     """ 数据 """
 
 class EventPayload(Payload):
-    op: OpCode = OpCode.Dispatch
+    op: Literal[OpCode.Dispatch] = OpCode.Dispatch
     s: int
     """ 序列号 """
     t: EventType
@@ -51,16 +53,16 @@ class ReadyData(BaseModel):
     shard: tuple[int, int]
 
 class ReadyEventPayload(EventPayload):
-    t: Event.WS = Event.WS.Ready
+    t: Literal[EventType.WSReady] = EventType.WSReady
     d: ReadyData
 
 class HeartbeatPayload(Payload):
-    op: OpCode = OpCode.Heartbeat
+    op: Literal[OpCode.Heartbeat] = OpCode.Heartbeat
     d: int | None
     """ 序列号 """
 
 class HeartbeatAckPayload(Payload):
-    op: OpCode = OpCode.HeartbeatACK
+    op: Literal[OpCode.HeartbeatACK] = OpCode.HeartbeatACK
 
 class ResumeData(BaseModel):
     token: str
@@ -68,11 +70,21 @@ class ResumeData(BaseModel):
     seq: int
 
 class ResumePayload(Payload):
-    op: OpCode = OpCode.Resume
+    op: Literal[OpCode.Resume] = OpCode.Resume
     d: ResumeData
 
 class ResumedEventPayload(EventPayload):
-    t: Event.WS = Event.WS.Resumed
+    t: Literal[EventType.WSResumed] = EventType.WSResumed
     d: str
 
 
+
+EventPayloads = ReadyEventPayload | ResumedEventPayload
+
+EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="t")]
+
+ReceivePayloads = HelloPayload | HeartbeatAckPayload | EventPayloadsAnnotation
+
+ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op")]
+
+ReceivePayloadsType = TypeAdapter(ReceivePayloadsAnnotation)
