@@ -1,6 +1,4 @@
 
-from mqga.log import logset,log
-
 import argparse
 
 parser = argparse.ArgumentParser(description="MQGA Process argparse:")
