@@ -1,7 +1,7 @@
 
 from mqga.api import API
 from mqga.ws import WS
-from mqga.args import args
+from mqga.args import *
 from mqga.log import log
 
 import asyncio
