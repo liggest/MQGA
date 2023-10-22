@@ -45,25 +45,31 @@ class Init():
                 self.toml.config.AppID = data.get("AppID",'')
                 self.toml.config.Token = data.get("Token",'')
                 self.toml.config.Secret = data.get("Secret",'')
+            log.info(f"读取到 {config_file} 文件数据,将以其内容启动bot")
         elif args.config:
             log.warning("未找到config文件")
-        if args.dump:
-            save_file = args.dump
-        if args.appid:
-            self.toml.config.AppID = args.appid
-        if args.token:
-            self.toml.config.Token = args.token
-        if args.secret:
-            self.toml.config.Secret = args.secret
+        if self.toml.config == Config():
+            log.info("未找到config文件,将读取指令参数")
+            if args.dump:
+                save_file = args.dump
+            if args.appid:
+                self.toml.config.AppID = args.appid
+            if args.token:
+                self.toml.config.Token = args.token
+            if args.secret:
+                self.toml.config.Secret = args.secret
         if not self.toml.config.AppID or not self.toml.config.Secret:
-            log.error("appid, secret 必须输入才可使用该BOT")
+            log.error("appid, secret 必须输入才可使用该BOT\n")
             parser.print_help()
             sys.exit(1)
         if args.config or not os.path.exists(save_file):
             data = self.toml.model_dump()
             with open(save_file, "wb") as f:
                 tomli_w.dump(data, f)
-            log.info("config文件已保存至: %s" % save_file)
+            if args.config:
+                log.info("已保存config文件至: %s" % save_file)
+            else:
+                log.info("数据已自动保存至: %s ,下次可直接启动bot" % save_file)
         
         
 config = Init(args).toml.config
