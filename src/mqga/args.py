@@ -1,5 +1,5 @@
 
-from mqga.log import logset
+from mqga.log import logset,log
 
 import argparse
 
@@ -12,4 +12,3 @@ parser.add_argument('-d', '--dump', type=str, help='导出config信息到指定�
 parser.add_argument('-D', '--debug', action='store_true', help='开启debug模式')
 
 args = parser.parse_args()
-
