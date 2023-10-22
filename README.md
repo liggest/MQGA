@@ -1,7 +1,9 @@
 <div align="center">
   <img src="src/迷途的羔羊.jpg" alt="迷途的羔羊" width = "256">
-  <br><h1>MQGA</h1>“Mostly a QQ Group Assistant”<br>
+  <br><h1>MQGA</h1>“Mostly a QQ Group Assistant”<br><br>
+  
   [![tencent-guild](https://img.shields.io/badge/%E9%A2%91%E9%81%93-MQGA-yellow?style=flat-square&logo=tencent-qq)](https://pd.qq.com/s/dsremvwtg)
+  
 </div>
 
 ## Instructions
