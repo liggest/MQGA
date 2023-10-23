@@ -47,5 +47,6 @@ pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
   其中 qq 机器人ID、密钥、令牌 在 https://q.qq.com/bot/#/developer/developer-setting 获取
 
   第一次使用时如果没有导入config文件,将会以参数保存到config.toml,下次启动bot可以不需要再次传参.
+  
   指令参数优先级: bot参数 > 指定config文件 > 默认config文件
 
