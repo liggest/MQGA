@@ -18,3 +18,5 @@ args = parser.parse_args()
 if args.debug:  # 设置log输出样式
     logset.set_debug()
     log.debug("已进入debug mode")
+
+
