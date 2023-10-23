@@ -29,9 +29,9 @@ pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
   -a string
         qq 机器人ID
   -s string
-        qq 机器人令牌
-  -t string
         qq 机器人密钥
+  -t string
+        qq 机器人令牌
   -c string
         load from config
   -h    
