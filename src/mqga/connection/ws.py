@@ -9,8 +9,11 @@ import asyncio
 import websockets
 
 from mqga.log import log
-from mqga.connection.constant import WSState
-from mqga.connection.model import ReceivePayloadsType
+from mqga.connection.constant import WSState, DefaultIntents
+from mqga.connection.model import ReceivePayloadsType, Payload
+from mqga.connection.model import HelloPayload, HeartbeatPayload, HeartbeatAckPayload
+from mqga.connection.model import ResumePayload, ResumeData, IdentifyPayload, IdentifyData
+from mqga.connection.model import EventPayload, ReadyEventPayload, ResumedEventPayload
 
 class WS:
 
@@ -21,10 +24,17 @@ class WS:
         self._connect_task: asyncio.Task = None
         self.state = WSState.Closed
 
+        self.intents = DefaultIntents
+        self._heartbeat_interval = 0
+        self._session_id = ""
+        self._last_seq_no = 0
+
+        self._heartbeat_task: asyncio.Task = None
+
     async def init(self):
         log.info(f"WS 初始化")
         self._connect_task = asyncio.create_task(self.connect())
-        self._connect_task.add_done_callback(self._connect_done)
+        self._connect_task.add_done_callback(self._task_done)
 
     async def stop(self):
         log.info(f"WS 停止")
@@ -62,9 +72,9 @@ class WS:
         log.info(f"WS {delay} 秒后尝试重连")
         await asyncio.sleep(delay)
         self._connect_task = asyncio.create_task(self.connect())
-        self._connect_task.add_done_callback(self._connect_done)
+        self._connect_task.add_done_callback(self._task_done)
 
-    def _connect_done(self, task: asyncio.Task):
+    def _task_done(self, task: asyncio.Task):
         if e := task.exception():
             log.exception("WS 连接任务失败", exc_info=e)
 
@@ -75,5 +85,49 @@ class WS:
             asyncio.create_task(self.handle(await client.recv()))
 
     async def handle(self, data: websockets.Data):
-        payload = ReceivePayloadsType.validate_json(data)
+        from pydantic import ValidationError
+        try:
+            payload = ReceivePayloadsType.validate_json(data)
+            log.debug(payload.model_dump())
+        except ValidationError as e:
+            payload = None
+            log.exception(e.errors(), exc_info=e)
+        match payload:
+            case HelloPayload():
+                self._heartbeat_interval = payload.data.heartbeat_interval / 1000
+                token = self.bot._api.header["Authorization"]
+                if self._session_id:
+                    await self._send_payload(ResumePayload(data=ResumeData(token=token, session_id=self._session_id, seq=self._last_seq_no)))
+                else:
+                    await self._send_payload(IdentifyPayload(data=IdentifyData(token=token, intents=self.intents)))
+            case EventPayload():
+                self._last_seq_no = payload.seq_no
+                log.debug(f"事件：{payload.type}")
+                if isinstance(payload, ReadyEventPayload):
+                    self._session_id = payload.data.session_id
+                    # TODO payload.data.user
+                    self._start_heartbeat()
+                    self.state = WSState.ConnectedSession
+                elif isinstance(payload, ResumedEventPayload):
+                    self._start_heartbeat()
+                    self.state = WSState.ConnectedSession
+            case HeartbeatAckPayload():
+                pass
+
+    async def _send_payload(self, payload: Payload):
         log.debug(payload.model_dump())
+        await self.client.send(payload.model_dump_json(by_alias=True))
+
+    def _start_heartbeat(self):
+        if self._heartbeat_task:
+            self._heartbeat_task.cancel()
+        self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+        self._heartbeat_task.add_done_callback(self._task_done)
+
+    async def _heartbeat_loop(self):
+        log.info("心砰砰地跳")
+        while self.client.open:
+            await self._send_payload(HeartbeatPayload(data=self._last_seq_no or None))
+            await asyncio.sleep(self._heartbeat_interval)
+
+        

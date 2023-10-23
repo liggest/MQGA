@@ -56,6 +56,8 @@ class Intents(IntFlag):
     PUBLIC_GUILD_MESSAGES = 1 << 30
     """ 频道消息（公域） """
 
+DefaultIntents = Intents.GUILDS | Intents.PUBLIC_GUILD_MESSAGES | Intents.GUILD_MEMBERS
+
 # class Event:
 #     """ 事件 """
 #     class WS(str, Enum):
@@ -330,5 +332,5 @@ class WSState(Enum):
     """ 正在连接 """
     ConnectedRaw = auto()
     """ 仅已连接 """
-    HasSession = auto()
+    ConnectedSession = auto()
     """ 已链接，已鉴权 """
