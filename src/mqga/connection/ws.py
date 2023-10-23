@@ -11,7 +11,7 @@ import websockets
 from mqga.log import log
 from mqga.connection.constant import WSState, DefaultIntents
 from mqga.connection.model import ReceivePayloadsType, Payload
-from mqga.connection.model import HelloPayload, HeartbeatPayload, HeartbeatAckPayload
+from mqga.connection.model import HelloPayload, HeartbeatPayload, HeartbeatAckPayload, InvalidSessionPayload
 from mqga.connection.model import ResumePayload, ResumeData, IdentifyPayload, IdentifyData
 from mqga.connection.model import EventPayload, ReadyEventPayload, ResumedEventPayload
 
@@ -75,8 +75,11 @@ class WS:
         self._connect_task.add_done_callback(self._task_done)
 
     def _task_done(self, task: asyncio.Task):
-        if e := task.exception():
-            log.exception("WS 连接任务失败", exc_info=e)
+        if task.cancelled():
+            log.warning(f"WS 任务 {task} 取消")
+        elif e := task.exception():
+            log.exception(f"WS 任务 {task} 失败", exc_info=e)
+                
 
     async def receive(self):
         client = self.client
@@ -111,6 +114,8 @@ class WS:
                 elif isinstance(payload, ResumedEventPayload):
                     self._start_heartbeat()
                     self.state = WSState.ConnectedSession
+            case InvalidSessionPayload():
+                self._session_id = ""
             case HeartbeatAckPayload():
                 pass
 

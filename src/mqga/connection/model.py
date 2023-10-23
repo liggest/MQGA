@@ -1,5 +1,5 @@
 
-from typing import Annotated, Literal, Any
+from typing import Annotated, Literal, Any, Optional
 
 from pydantic import BaseModel, Field, TypeAdapter, ConfigDict
 
@@ -83,13 +83,15 @@ class ResumedEventPayload(EventPayload):
     type: Literal[EventType.WSResumed] = EventType.WSResumed
     data: str
 
-
+class InvalidSessionPayload(Payload):
+    op_code: Literal[OpCode.InvalidSession] = OpCode.InvalidSession
+    data: Optional[bool]
 
 EventPayloads = ReadyEventPayload | ResumedEventPayload
 
 EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="type")]
 
-ReceivePayloads = HelloPayload | HeartbeatAckPayload | EventPayloadsAnnotation
+ReceivePayloads = HelloPayload | HeartbeatAckPayload | InvalidSessionPayload | EventPayloadsAnnotation
 
 ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op_code")]
 
