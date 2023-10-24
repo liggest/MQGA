@@ -29,17 +29,24 @@ pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
   -a string
         qq 机器人ID
   -s string
-        qq 机器人令牌
-  -t string
         qq 机器人密钥
-  -c string
-        load from config
-  -h    
-        print this help
+  -t string
+        qq 机器人令牌
   -p
         only listen to public intent
   -b
         run in sandbox api
+  -c string
+        load from config
   -d string
         save bot config to filename (eg. config.toml)
+  -h    
+        print this help
 ```
+
+  其中 qq 机器人ID、密钥、令牌 在 https://q.qq.com/bot/#/developer/developer-setting 获取
+
+  第一次使用时如果没有导入config文件,将会以参数保存到config.toml,下次启动bot可以不需要再次传参.
+  
+  指令参数优先级: bot参数 > 指定config文件 > 默认config文件
+
