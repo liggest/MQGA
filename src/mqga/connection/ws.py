@@ -91,7 +91,7 @@ class WS:
         from pydantic import ValidationError
         try:
             payload = ReceivePayloadsType.validate_json(data)
-            log.debug(payload.model_dump())
+            log.debug(f"{type(payload)!r} {payload.model_dump()}")
         except ValidationError as e:
             payload = None
             log.exception(e.errors(), exc_info=e)
