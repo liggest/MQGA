@@ -81,11 +81,22 @@ class ResumePayload(Payload):
 
 class ResumedEventPayload(EventPayload):
     type: Literal[EventType.WSResumed] = EventType.WSResumed
-    data: str
+    data: str = ""
 
 class InvalidSessionPayload(Payload):
     op_code: Literal[OpCode.InvalidSession] = OpCode.InvalidSession
     data: Optional[bool]
+
+class UnknownPayload(Payload):
+    model_config = ConfigDict(extra="allow")
+
+    op_code: OpCode
+    seq_no: Optional[int]
+    """ 序列号 """
+    type: Optional[str]
+    """ 事件类型 """
+    data: Optional[Any]
+    """ 事件数据 """
 
 EventPayloads = ReadyEventPayload | ResumedEventPayload
 
@@ -95,4 +106,7 @@ ReceivePayloads = HelloPayload | HeartbeatAckPayload | InvalidSessionPayload | E
 
 ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op_code")]
 
-ReceivePayloadsType = TypeAdapter(ReceivePayloadsAnnotation)
+AllPayloads = ReceivePayloadsAnnotation | UnknownPayload
+
+ReceivePayloadsType = TypeAdapter(AllPayloads)
+
