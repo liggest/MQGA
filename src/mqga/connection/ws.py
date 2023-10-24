@@ -32,12 +32,12 @@ class WS:
         self._heartbeat_task: asyncio.Task = None
 
     async def init(self):
-        log.info(f"WS 初始化")
+        log.info("WS 初始化")
         self._connect_task = asyncio.create_task(self.connect())
         self._connect_task.add_done_callback(self._task_done)
 
     async def stop(self):
-        log.info(f"WS 停止")
+        log.info("WS 停止")
         if self._connect_task:
             self._connect_task.cancel()
 
@@ -50,14 +50,14 @@ class WS:
 
     async def connect(self):
         if not self.url:
-            log.info(f"WS 正在获取接入点")
+            log.info("WS 正在获取接入点")
             self.url = await self.bot._api.ws_url()
             log.debug(f"WS 拿到接入点 {self.url}")
         
         try:
             self.state = WSState.Connecting
             async with websockets.connect(self.url) as self.client:
-                log.info(f"WS 已连接")
+                log.info("WS 已连接")
                 self.state = WSState.ConnectedRaw
                 await self.receive()
         except websockets.exceptions.ConnectionClosed:
