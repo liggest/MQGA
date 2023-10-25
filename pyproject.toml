@@ -29,3 +29,8 @@ version = {source = "file", path = "src/mqga/__version__.py"}
 
 [tool.pdm.scripts]
 bot = {cmd = "python bot.py"}
+
+[tool.ruff.lint]
+ignore = ["E501", "E402"]
+# E501: Line too long
+# E402: Module level import not at top of file
