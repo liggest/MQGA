@@ -87,6 +87,9 @@ class InvalidSessionPayload(Payload):
     op_code: Literal[OpCode.InvalidSession] = OpCode.InvalidSession
     data: bool = False
 
+class ReconnectPayload(Payload):
+    op_code: Literal[OpCode.Reconnect] = OpCode.Reconnect
+
 class UnknownPayload(Payload):
     model_config = ConfigDict(extra="allow")
 
@@ -251,7 +254,7 @@ EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventP
 
 EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="type")]
 
-ReceivePayloads = HelloPayload | HeartbeatAckPayload | InvalidSessionPayload | EventPayloadsAnnotation
+ReceivePayloads = EventPayloadsAnnotation | HeartbeatAckPayload | HelloPayload | InvalidSessionPayload | ReconnectPayload
 
 ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op_code")]
 
