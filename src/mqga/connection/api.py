@@ -10,7 +10,9 @@ if TYPE_CHECKING:
 
 import httpx
 
+from mqga import LEGACY
 from mqga.log import log
+from mqga.connection.model import ChannelAtMessageEventPayload, EventPayload, Message
 
 class APIError(Exception):
 
@@ -40,12 +42,19 @@ class API:
 
         self._client: httpx.AsyncClient = None
 
-    @cached_property
-    def header(self):
-        return {
-            "Authorization": f"QQBot {self._token}",
-            "X-Union-Appid": f"{self.bot.APPID}"
-        }
+    if LEGACY:
+        @cached_property
+        def header(self):
+            return {
+                "Authorization": f"Bot {self.bot.APPID}.{self.bot.APP_TOKEN}"
+            }
+    else:
+        @cached_property
+        def header(self):
+            return {
+                "Authorization": f"QQBot {self._token}",
+                "X-Union-Appid": f"{self.bot.APPID}"
+            }
 
     @cached_property
     def _token_data(self):
@@ -158,5 +167,13 @@ class API:
         await self.stop()
 
     async def ws_url(self) -> str:
-        rj = await self._get("gateway")
+        rj = await self._get("/gateway")
         return rj["url"]
+
+    async def channel_reply(self, content: str, event:EventPayload): # TODO
+        data = { "content": content }
+        if isinstance(event, ChannelAtMessageEventPayload):
+            data["msg_id"] = event.data.id
+        else:
+            data["event_id"] = event.type  # TODO
+        return Message(** await self._post(f"/channels/{event.data.channel_id}/messages", data=data))

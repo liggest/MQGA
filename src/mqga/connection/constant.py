@@ -334,3 +334,14 @@ class WSState(Enum):
     """ 仅已连接 """
     ConnectedSession = auto()
     """ 已链接，已鉴权 """
+
+class RoleID(str, Enum):
+    """ 身份组 ID """
+    All = "1"
+    """ 全体成员 """
+    Admin = "2"
+    """ 管理员 """
+    Owner = "4"
+    """ 群主 / 创建者 """
+    ChannelAdmin = "5"
+    """ 子频道管理员 """

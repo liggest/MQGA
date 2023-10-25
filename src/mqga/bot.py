@@ -1,10 +1,11 @@
 
+import asyncio
+
+from mqga import LEGACY
 from mqga.connection.api import API
 from mqga.connection.ws import WS
 from mqga.log import log
 
-
-import asyncio
 
 class Bot:
     """ 统一管理连接、消息处理等，并提供一些方法来调用 api """
@@ -24,6 +25,11 @@ class Bot:
     @property
     def APP_SECRET(self):
         return self.config.Secret
+
+    if LEGACY:
+        @property
+        def APP_TOKEN(self):
+            return self.config.Token
 
     @property
     def BASE_URL(self):
