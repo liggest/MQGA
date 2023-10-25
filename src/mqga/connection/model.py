@@ -1,5 +1,5 @@
 
-from typing import Annotated, Literal, Any, Optional, Iterable
+from typing import Annotated, Literal, Any, Optional
 
 from pydantic import BaseModel, Field, TypeAdapter, ConfigDict
 
