@@ -32,13 +32,16 @@ class Bot:
             return self.config.Token
 
     @property
-    def BASE_URL(self):
-        # raise NotImplementedError
-        return r"https://sandbox.api.sgroup.qq.com"
+    def in_sandbox(self):
+        return self.config.Sandbox
     
     @property
+    def is_public(self):
+        return self.config.Public
+
+    @property
     def TIMEOUT(self):
-        # raise NotImplementedError
+        # raise NotImplementedError  # TODO
         return None
 
     async def init(self):

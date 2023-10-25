@@ -74,9 +74,14 @@ class API:
         await self._ensure_token()
         return self._token
 
-    @cached_property
-    def _base_url(self):
-        return self.bot.BASE_URL
+    if LEGACY:
+        @cached_property
+        def _base_url(self):
+            return (r"https://api.sgroup.qq.com/", r"https://sandbox.api.sgroup.qq.com")[self.bot.in_sandbox]
+    else:
+        @cached_property
+        def _base_url(self):
+            return r"https://api.sgroup.qq.com/"
 
     async def _get(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
