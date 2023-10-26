@@ -11,9 +11,9 @@ import websockets
 from mqga.log import log
 from mqga.connection.constant import WSState, DefaultIntents
 from mqga.connection.model import ReceivePayloadsType, Payload
-from mqga.connection.model import HelloPayload, HeartbeatPayload, HeartbeatAckPayload, InvalidSessionPayload
+from mqga.connection.model import HelloPayload, HeartbeatPayload, HeartbeatAckPayload, InvalidSessionPayload, ReconnectPayload
 from mqga.connection.model import ResumePayload, ResumeData, IdentifyPayload, IdentifyData
-from mqga.connection.model import EventPayload, ReadyEventPayload, ResumedEventPayload
+from mqga.connection.model import EventPayload, ReadyEventPayload, ResumedEventPayload, ChannelAtMessageEventPayload
 
 class WS:
 
@@ -94,7 +94,7 @@ class WS:
             log.debug(f"{type(payload)!r} {payload.model_dump()}")
         except ValidationError as e:
             payload = None
-            log.exception(e.errors(), exc_info=e)
+            log.exception(f"raw: {data!r}, error:{e.json(include_url=False)!r}", exc_info=e)
         match payload:
             case HelloPayload():
                 self._heartbeat_interval = payload.data.heartbeat_interval / 1000
@@ -105,22 +105,27 @@ class WS:
                     await self._send_payload(IdentifyPayload(data=IdentifyData(token=token, intents=self.intents)))
             case EventPayload():
                 self._last_seq_no = payload.seq_no
-                log.debug(f"事件：{payload.type}")
-                if isinstance(payload, ReadyEventPayload):
-                    self._session_id = payload.data.session_id
-                    # TODO payload.data.user
-                    self._start_heartbeat()
-                    self.state = WSState.ConnectedSession
-                elif isinstance(payload, ResumedEventPayload):
-                    self._start_heartbeat()
-                    self.state = WSState.ConnectedSession
+                log.debug(f"收到事件：{payload.type}")
+                match payload:
+                    case ReadyEventPayload():
+                        self._session_id = payload.data.session_id
+                        log.debug(f"我的信息：{payload.data.user!r}")
+                        self._start_heartbeat()
+                        self.state = WSState.ConnectedSession
+                    case ResumedEventPayload():
+                        self._start_heartbeat()
+                        self.state = WSState.ConnectedSession
+                    case ChannelAtMessageEventPayload():
+                        log.debug(f"收到消息：{payload.data!r}")
+                        if payload.data.content.lower().endswith("hello"):
+                            await self.bot._api.channel_reply("全体目光向我看齐，我宣布个事儿！\nMQGA！", payload)
             case InvalidSessionPayload():
                 self._session_id = ""
-            case HeartbeatAckPayload():
+            case HeartbeatAckPayload() | ReconnectPayload():
                 pass
 
     async def _send_payload(self, payload: Payload):
-        log.debug(payload.model_dump())
+        log.debug(payload.model_dump(by_alias=True))
         await self.client.send(payload.model_dump_json(by_alias=True))
 
     def _start_heartbeat(self):
@@ -134,5 +139,3 @@ class WS:
         while self.client.open:
             await self._send_payload(HeartbeatPayload(data=self._last_seq_no or None))
             await asyncio.sleep(self._heartbeat_interval)
-
-        

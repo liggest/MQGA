@@ -10,12 +10,15 @@ if TYPE_CHECKING:
 
 import httpx
 
+from mqga import LEGACY
 from mqga.log import log
+from mqga.connection.model import ChannelAtMessageEventPayload, EventPayload, Message
+
 
 class APIError(Exception):
 
-    def __init__(self, data:dict):
-        self._data=data
+    def __init__(self, data: dict):
+        self._data = data
         if self.message:
             super().__init__(self.code, self.message)
         else:
@@ -29,6 +32,7 @@ class APIError(Exception):
     def message(self):
         return self._data.get("message")
 
+
 class API:
 
     def __init__(self, bot: Bot):
@@ -40,12 +44,19 @@ class API:
 
         self._client: httpx.AsyncClient = None
 
-    @cached_property
-    def header(self):
-        return {
-            "Authorization": f"QQBot {self._token}",
-            "X-Union-Appid": f"{self.bot.APPID}"
-        }
+    if LEGACY:
+        @cached_property
+        def header(self):
+            return {
+                "Authorization": f"Bot {self.bot.APPID}.{self.bot.APP_TOKEN}"
+            }
+    else:
+        @cached_property
+        def header(self):
+            return {
+                "Authorization": f"QQBot {self._token}",
+                "X-Union-Appid": f"{self.bot.APPID}"
+            }
 
     @cached_property
     def _token_data(self):
@@ -63,25 +74,30 @@ class API:
         await self._ensure_token()
         return self._token
 
-    @cached_property
-    def _base_url(self):
-        return self.bot.BASE_URL
+    if LEGACY:
+        @cached_property
+        def _base_url(self):
+            return (r"https://api.sgroup.qq.com/", r"https://sandbox.api.sgroup.qq.com")[self.bot.in_sandbox]
+    else:
+        @cached_property
+        def _base_url(self):
+            return r"https://api.sgroup.qq.com/"
 
-    async def _get(self, api:str, params:dict=None, timeout:float=httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _get(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         return self._handle_response(await self._client.get(api, params=params, timeout=timeout, **kw))
 
-    async def _post(self, api:str, data:dict, timeout:float=httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post(self, api: str, data: dict, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         return self._handle_response(await self._client.post(api, json=data, timeout=timeout, **kw))
 
-    def _handle_response(self, response:httpx.Response):
+    def _handle_response(self, response: httpx.Response):
         http_error = None
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
             http_error = e
-        data:dict = response.json()
+        data: dict = response.json()
         if (data and "code" in data):
             if http_error:
                 raise APIError(data) from http_error
@@ -92,24 +108,25 @@ class API:
     async def _ensure_token(self):
         if self._token:
             now = time.time()
-            if now < self._fetch_time: # 不用获取新的
+            if now < self._fetch_time:  # 不用获取新的
                 return self._token
-            if now < self._expire_time: # 需要获取新的，但老的也还能用，先把 task 创出来
+            if now < self._expire_time:  # 需要获取新的，但老的也还能用，先把 task 创出来
                 self._token_task  # 如果还没有的话，创建
                 return self._token
         await self._token_task
         return self._token
-        
+
     TOKEN_URL = r"https://bots.qq.com/app/getAppAccessToken"
     TOKEN_INTERVAL = 50
 
     async def _fetch_token(self):
         async with httpx.AsyncClient() as client:
             data = (await client.post(self.TOKEN_URL, json=self._token_data)).json()
-        self._token, expire_time = data["access_token"], int(data["expires_in"])
+        self._token, expire_time = data["access_token"], int(
+            data["expires_in"])
         log.info(f"拿到了新访问符，{expire_time} 秒后要再拿 :(")
         self._expire_time = time.time() + expire_time
-        self._fetch_time= self._expire_time - self.TOKEN_INTERVAL  # 过期前就获取新的
+        self._fetch_time = self._expire_time - self.TOKEN_INTERVAL  # 过期前就获取新的
         del self.header
         del self._token_task  # 因为要跑完了，删掉自己的 task
         await self._new_client()  # 也换上新的 client
@@ -123,21 +140,22 @@ class API:
     #         while not end.is_set():
     #             async with self._new_client():  # 在 token 有效期间保持 client 对象  TODO: 效果待验证
     #                 await asyncio.sleep(self._sleep_time)
-                    
+
     #                 await self._token_task
     #     finally:
     #         self._token_task.cancel()
     #         log.debug("token loop 结束")
-    
+
     async def _new_client(self):
         base_url = self._base_url or ""
         timeout = self.bot.TIMEOUT or httpx._config.DEFAULT_TIMEOUT_CONFIG
         old_client = self._client
-        self._client = httpx.AsyncClient(base_url=base_url, timeout=timeout, headers=self.header)
+        self._client = httpx.AsyncClient(
+            base_url=base_url, timeout=timeout, headers=self.header)
         if old_client:
             await old_client.aclose()
         return self._client
-    
+
     async def init(self):
         log.info("API 初始化")
         self.header = {}  # 一开始没有 token，所以也没有 header
@@ -153,10 +171,16 @@ class API:
     async def __aenter__(self):
         # 并不在这里初始化，而是在 bot 初始化时初始化
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.stop()
 
     async def ws_url(self) -> str:
-        rj = await self._get("gateway")
+        rj = await self._get("/gateway")
         return rj["url"]
+
+    async def channel_reply(self, content: str, event: EventPayload):  # TODO
+        return Message(**await self._post(f"/channels/{event.data.channel_id}/messages", data={
+            "content": content,
+            **({"msg_id": event.data.id} if isinstance(event, ChannelAtMessageEventPayload) else {"event_id": event.type})
+        }))
