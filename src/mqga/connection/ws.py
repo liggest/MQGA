@@ -9,11 +9,11 @@ import asyncio
 import websockets
 
 from mqga.log import log
-from mqga.connection.constant import WSState, DefaultIntents
-from mqga.connection.model import ReceivePayloadsType, Payload
-from mqga.connection.model import HelloPayload, HeartbeatPayload, HeartbeatAckPayload, InvalidSessionPayload, ReconnectPayload
-from mqga.connection.model import ResumePayload, ResumeData, IdentifyPayload, IdentifyData
-from mqga.connection.model import EventPayload, ReadyEventPayload, ResumedEventPayload, ChannelAtMessageEventPayload
+from mqga.q.constant import WSState, DefaultIntents
+from mqga.q.payload import ReceivePayloadsType, Payload
+from mqga.q.payload import HelloPayload, HeartbeatPayload, HeartbeatAckPayload, InvalidSessionPayload, ReconnectPayload
+from mqga.q.payload import ResumePayload, ResumeData, IdentifyPayload, IdentifyData
+from mqga.q.payload import EventPayload, ReadyEventPayload, ResumedEventPayload, ChannelAtMessageEventPayload
 
 class WS:
 

@@ -12,8 +12,8 @@ import httpx
 
 from mqga import LEGACY
 from mqga.log import log
-from mqga.connection.model import ChannelAtMessageEventPayload, EventPayload, Message
-
+from mqga.q.payload import ChannelAtMessageEventPayload, EventPayload
+from mqga.q.message import Message
 
 class APIError(Exception):
 
