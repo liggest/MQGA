@@ -1,5 +1,4 @@
 
-from mqga.bot import Bot
+import mqga
 
-bot = Bot()
-bot.run()
+mqga.run()

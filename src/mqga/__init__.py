@@ -19,3 +19,9 @@ def _pre_defined():
         print("【旧 频道模式】…")
 
 _pre_defined()
+
+def run():
+    from mqga.bot import Bot
+
+    bot = Bot()
+    bot.run()
