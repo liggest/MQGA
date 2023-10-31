@@ -1,5 +1,7 @@
 
 from typing import Annotated, Literal, Any
+import operator
+from functools import reduce
 
 from pydantic import BaseModel, Field, TypeAdapter, ConfigDict
 
@@ -106,15 +108,29 @@ class ChannelAtMessageEventPayload(EventPayload):
     type: Literal[EventType.ChannelAtMessageCreate] = EventType.ChannelAtMessageCreate
     data: Message
 
-EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventPayload
+# EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventPayload
 
-EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="type")]
+# EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="type")]
 
-ReceivePayloads = EventPayloadsAnnotation | HeartbeatAckPayload | HelloPayload | InvalidSessionPayload | ReconnectPayload
+# ReceivePayloads = EventPayloadsAnnotation | HeartbeatAckPayload | HelloPayload | InvalidSessionPayload | ReconnectPayload
 
-ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op_code")]
+# ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op_code")]
 
-AllPayloads = ReceivePayloadsAnnotation # | UnknownPayload
+# AllPayloads = ReceivePayloadsAnnotation # | UnknownPayload
 
-ReceivePayloadsType = TypeAdapter(AllPayloads)
+# ReceivePayloadsType = TypeAdapter(AllPayloads)
 
+def _event_payloads() -> type[ReadyEventPayload] | type[ResumedEventPayload] | type[EventPayload]:
+    return Annotated[
+        reduce(operator.or_, EventPayload.__subclasses__()),  # TODO 目前只支持 EventPayload 的直接子类
+        Field(discriminator="type")
+    ]
+
+def _receive_payloads():
+    return Annotated[
+        HeartbeatAckPayload | HelloPayload | InvalidSessionPayload | ReconnectPayload | _event_payloads(), 
+        Field(discriminator="op_code")
+    ]
+
+def receive_payloads_type():
+    return TypeAdapter(_receive_payloads())

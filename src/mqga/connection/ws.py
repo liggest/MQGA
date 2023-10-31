@@ -4,16 +4,18 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.bot import Bot
 
+from functools import cached_property
 import asyncio
 
 import websockets
 
 from mqga.log import log
 from mqga.q.constant import WSState, DefaultIntents
-from mqga.q.payload import ReceivePayloadsType, Payload
+from mqga.q.payload import Payload
 from mqga.q.payload import HelloPayload, HeartbeatPayload, HeartbeatAckPayload, InvalidSessionPayload, ReconnectPayload
 from mqga.q.payload import ResumePayload, ResumeData, IdentifyPayload, IdentifyData
 from mqga.q.payload import EventPayload, ReadyEventPayload, ResumedEventPayload, ChannelAtMessageEventPayload
+from mqga.q.payload import receive_payloads_type
 
 class WS:
 
@@ -31,6 +33,10 @@ class WS:
 
         self._heartbeat_task: asyncio.Task = None
 
+    @cached_property
+    def ReceivePayloadsType(self):
+        return receive_payloads_type()
+
     async def init(self):
         log.info("WS 初始化")
         self._connect_task = asyncio.create_task(self.connect())
@@ -40,6 +46,8 @@ class WS:
         log.info("WS 停止")
         if self._connect_task:
             self._connect_task.cancel()
+        if "ReceivePayloadsType" in self.__dict__:
+            del self.ReceivePayloadsType
 
     async def __aenter__(self):
         # 并不在这里初始化，而是在 bot 初始化时初始化
@@ -90,7 +98,7 @@ class WS:
     async def handle(self, data: websockets.Data):
         from pydantic import ValidationError
         try:
-            payload = ReceivePayloadsType.validate_json(data)
+            payload = self.ReceivePayloadsType.validate_json(data)
             log.debug(f"{type(payload)!r} {payload.model_dump()}")
         except ValidationError as e:
             payload = None
