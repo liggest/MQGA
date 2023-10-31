@@ -30,6 +30,7 @@ class WS:
         log.info("WS 停止")
         if self._connect_task:
             self._connect_task.cancel()
+        self.handler.closed()
         self.handler = None
 
     async def __aenter__(self):
@@ -55,7 +56,8 @@ class WS:
             log.warning("WS 连接关闭")
         finally:
             log.info("WS 已断开")
-            self.handler.closed()
+            if self.handler:
+                self.handler.closed()
             if not self.bot._ended.is_set():
                 await self.reconnect()
 
