@@ -112,10 +112,10 @@ class Message(BaseModel):
 
     id: str
     """ 消息 ID """
-    channel_id: str
-    """ 子频道 ID """
-    guild_id: str
-    """ 频道 ID """
+    # channel_id: str
+    # """ 子频道 ID """
+    # guild_id: str
+    # """ 频道 ID """
     content: str
     """ 消息内容 """
     timestamp: datetime
@@ -142,5 +142,25 @@ class Message(BaseModel):
     """ 子频道消息序列号 """
     reference: MessageReference | None = Field(default=None, alias="message_reference")
     """ 引用的消息 """
-    src_guild_id: str | None = None
+    # src_guild_id: str | None = None
+    # """ 私信消息来源频道的 ID """
+
+class ChannelMessage(Message):
+    """ 子频道消息 """
+    channel_id: str
+    """ 子频道 ID """
+    guild_id: str
+    """ 频道 ID """
+
+class DirectMessage(ChannelMessage):
+    """ 私信消息 """
+    src_guild_id: str
     """ 私信消息来源频道的 ID """
+
+class PrivateMessage(Message):
+    """ 私聊消息 """
+    group_id: str = "0"
+
+class GroupMessage(Message):
+    """ 私聊消息 """
+    group_id: str

@@ -32,6 +32,8 @@ class WSState(Enum):
     """ 已链接，已鉴权 """
 
 class WSHandler:
+    """ 处理 WS 中各种琐碎的逻辑 """
+    
     def __init__(self, ws: WS):
         self.ws = ws
         self._last_seq_no = 0

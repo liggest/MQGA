@@ -6,7 +6,7 @@ from functools import reduce
 from pydantic import BaseModel, Field, TypeAdapter, ConfigDict
 
 from mqga.q.constant import OpCode, Intents, EventType
-from mqga.q.message import Message
+from mqga.q.message import ChannelMessage, GroupMessage, PrivateMessage
 
 def _real_name(name: str):
     return {"op_code": "op", "data": "d", "seq_no": "s", "type": "t"}.get(name, name)
@@ -106,7 +106,15 @@ class UnknownPayload(Payload):
 
 class ChannelAtMessageEventPayload(EventPayload):
     type: Literal[EventType.ChannelAtMessageCreate] = EventType.ChannelAtMessageCreate
-    data: Message
+    data: ChannelMessage
+
+class GroupAtMessageEventPayload(EventPayload):
+    type: Literal[EventType.GroupAtMessageCreate] = EventType.GroupAtMessageCreate
+    data: GroupMessage
+
+class PrivateMessageEventPayload(EventPayload):
+    type: Literal[EventType.PrivateMessageCreate] = EventType.PrivateMessageCreate
+    data: PrivateMessage
 
 # EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventPayload
 
