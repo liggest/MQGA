@@ -1,4 +1,4 @@
-from enum import Enum, IntEnum, IntFlag, auto
+from enum import Enum, IntEnum, IntFlag
 
 class OpCode(IntEnum):
     """
@@ -323,17 +323,6 @@ class EventType(str, Enum):
     """ 音频子频道上麦时 """
     AudioOffMic = "AUDIO_OFF_MIC"
     """ 音频子频道下麦时 """
-
-class WSState(Enum):
-    """ 连接状态 """
-    Closed = auto()
-    """ 未连接 """
-    Connecting = auto()
-    """ 正在连接 """
-    ConnectedRaw = auto()
-    """ 仅已连接 """
-    ConnectedSession = auto()
-    """ 已链接，已鉴权 """
 
 class RoleID(str, Enum):
     """ 身份组 ID """

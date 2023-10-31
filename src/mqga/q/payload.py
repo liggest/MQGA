@@ -1,10 +1,12 @@
 
 from typing import Annotated, Literal, Any
+import operator
+from functools import reduce
 
 from pydantic import BaseModel, Field, TypeAdapter, ConfigDict
 
 from mqga.q.constant import OpCode, Intents, EventType
-from mqga.q.message import Message
+from mqga.q.message import ChannelMessage, GroupMessage, PrivateMessage
 
 def _real_name(name: str):
     return {"op_code": "op", "data": "d", "seq_no": "s", "type": "t"}.get(name, name)
@@ -104,17 +106,39 @@ class UnknownPayload(Payload):
 
 class ChannelAtMessageEventPayload(EventPayload):
     type: Literal[EventType.ChannelAtMessageCreate] = EventType.ChannelAtMessageCreate
-    data: Message
+    data: ChannelMessage
 
-EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventPayload
+class GroupAtMessageEventPayload(EventPayload):
+    type: Literal[EventType.GroupAtMessageCreate] = EventType.GroupAtMessageCreate
+    data: GroupMessage
 
-EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="type")]
+class PrivateMessageEventPayload(EventPayload):
+    type: Literal[EventType.PrivateMessageCreate] = EventType.PrivateMessageCreate
+    data: PrivateMessage
 
-ReceivePayloads = EventPayloadsAnnotation | HeartbeatAckPayload | HelloPayload | InvalidSessionPayload | ReconnectPayload
+# EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventPayload
 
-ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op_code")]
+# EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="type")]
 
-AllPayloads = ReceivePayloadsAnnotation # | UnknownPayload
+# ReceivePayloads = EventPayloadsAnnotation | HeartbeatAckPayload | HelloPayload | InvalidSessionPayload | ReconnectPayload
 
-ReceivePayloadsType = TypeAdapter(AllPayloads)
+# ReceivePayloadsAnnotation = Annotated[ReceivePayloads, Field(discriminator="op_code")]
 
+# AllPayloads = ReceivePayloadsAnnotation # | UnknownPayload
+
+# ReceivePayloadsType = TypeAdapter(AllPayloads)
+
+def _event_payloads() -> type[ReadyEventPayload] | type[ResumedEventPayload] | type[EventPayload]:
+    return Annotated[
+        reduce(operator.or_, EventPayload.__subclasses__()),  # TODO 目前只支持 EventPayload 的直接子类
+        Field(discriminator="type")
+    ]
+
+def _receive_payloads():
+    return Annotated[
+        HeartbeatAckPayload | HelloPayload | InvalidSessionPayload | ReconnectPayload | _event_payloads(), 
+        Field(discriminator="op_code")
+    ]
+
+def receive_payloads_type():
+    return TypeAdapter(_receive_payloads())
