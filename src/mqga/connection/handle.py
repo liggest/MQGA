@@ -72,10 +72,10 @@ class WSHandler:
                         self._session_id = payload.data.session_id
                         log.debug(f"我的信息：{payload.data.user!r}")
                         self._start_heartbeat()
-                        self.state = WSState.ConnectedSession
+                        self.to_connected_session()
                     case ResumedEventPayload():
                         self._start_heartbeat()
-                        self.state = WSState.ConnectedSession
+                        self.to_connected_session()
                     case ChannelAtMessageEventPayload():
                         log.debug(f"收到消息：{payload.data!r}")
                         if payload.data.content.lower().endswith("hello"):
@@ -87,13 +87,16 @@ class WSHandler:
 
     __call__ = handle
 
-    def connecting(self):
+    def to_connecting(self):
         self.state = WSState.Connecting
     
-    def connected_raw(self):
+    def to_connected_raw(self):
         self.state = WSState.ConnectedRaw
+
+    def to_connected_session(self):
+        self.state = WSState.ConnectedSession
     
-    def closed(self):
+    def to_closed(self):
         self.state = WSState.Closed
 
     async def _send_payload(self, payload: Payload):

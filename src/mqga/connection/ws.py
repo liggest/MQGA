@@ -30,7 +30,7 @@ class WS:
         log.info("WS 停止")
         if self._connect_task:
             self._connect_task.cancel()
-        self.handler.closed()
+        self.handler.to_closed()
         self.handler = None
 
     async def __aenter__(self):
@@ -47,17 +47,17 @@ class WS:
             log.debug(f"WS 拿到接入点 {self.url}")
         
         try:
-            self.handler.connecting()
+            self.handler.to_connecting()
             async with websockets.connect(self.url) as self.client:
                 log.info("WS 已连接")
-                self.handler.connected_raw()
+                self.handler.to_connected_raw()
                 await self.receive()
         except websockets.exceptions.ConnectionClosed:
             log.warning("WS 连接关闭")
         finally:
             log.info("WS 已断开")
             if self.handler:
-                self.handler.closed()
+                self.handler.to_closed()
             if not self.bot._ended.is_set():
                 await self.reconnect()
 
