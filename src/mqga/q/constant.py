@@ -38,15 +38,17 @@ class Intents(IntFlag):
     GUILD_MESSAGES = 1 << 9
     """ 频道消息（私域） """
     GUILD_MESSAGE_REACTIONS = 1 << 10
-    """ 频道对消息做表情反馈 """
+    """ 频道对消息做表情表态 """
     DIRECT_MESSAGE = 1 << 12
     """ 私信消息 """
     OPEN_FORUMS_EVENT = 1 << 18
     """ 论坛事件（公域） """
     AUDIO_OR_LIVE_CHANNEL_MEMBER = 1 << 19
     """ 音视频 / 直播子频道成员 """
+    GROUP_PRIVATE_MESSAGES = 1 << 25  # 暂定
+    """ 群、私聊消息 """
     INTERACTION  = 1 << 26
-    """ 互动事件 """
+    """ 消息按钮交互事件 """
     MESSAGE_AUDIT = 1 << 27
     """ 消息审核 """
     FORUMS_EVENT = 1 << 28
@@ -334,6 +336,24 @@ class RoleID(str, Enum):
     """ 群主 / 创建者 """
     ChannelAdmin = "5"
     """ 子频道管理员 """
+
+class ReactionTargetType(IntEnum):
+    """ 表态对象类型 """
+    Message = 0
+    """ 对消息 """
+    Thread = 1     # 名称暂定
+    """ 对帖子 """
+    Post = 2       # 名称暂定
+    """ 对评论？ """
+    Reply = 3
+    """ 对回复 """
+
+class EmojiType(IntEnum):
+    """ 表情类型 """
+    System = 1
+    """ QQ 表情 """
+    Emoji = 2
+    """ 真正的 emoji """
 
 class MsgType(IntEnum):
     Text = 0

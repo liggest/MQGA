@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field, TypeAdapter, ConfigDict
 
 from mqga.q.constant import OpCode, Intents, EventType
 from mqga.q.message import ChannelMessage, GroupMessage, PrivateMessage
+from mqga.q.message import User
+from mqga.q.message import MessageReaction
 
 def _real_name(name: str):
     return {"op_code": "op", "data": "d", "seq_no": "s", "type": "t"}.get(name, name)
@@ -50,15 +52,15 @@ class EventPayload(Payload):
     data: dict
     """ 事件数据 """
 
-class UserData(BaseModel):
-    id: str
-    username: str
-    bot: bool
+# class UserData(BaseModel):
+#     id: str
+#     username: str
+#     bot: bool
 
 class ReadyData(BaseModel):
     version: int
     session_id: str
-    user: UserData
+    user: User
     shard: tuple[int, int]
 
 class ReadyEventPayload(EventPayload):
@@ -116,6 +118,14 @@ class PrivateMessageEventPayload(EventPayload):
     type: Literal[EventType.PrivateMessageCreate] = EventType.PrivateMessageCreate
     data: PrivateMessage
 
+class ChannelMessageReactionAddEventPayload(EventPayload):
+    type: Literal[EventType.ChannelMessageReactionAdd] = EventType.ChannelMessageReactionAdd
+    data: MessageReaction
+
+class ChannelMessageReactionRemoveEventPayload(EventPayload):
+    type: Literal[EventType.ChannelMessageReactionRemove] = EventType.ChannelMessageReactionRemove
+    data: MessageReaction
+
 # EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventPayload
 
 # EventPayloadsAnnotation = Annotated[EventPayloads, Field(discriminator="type")]
@@ -127,6 +137,24 @@ class PrivateMessageEventPayload(EventPayload):
 # AllPayloads = ReceivePayloadsAnnotation # | UnknownPayload
 
 # ReceivePayloadsType = TypeAdapter(AllPayloads)
+
+EventPayloadWithChannelID = (ChannelAtMessageEventPayload 
+                             | ChannelMessageReactionAddEventPayload 
+                             | ChannelMessageReactionRemoveEventPayload)  # TODO 还有更多
+
+# from typing import Protocol
+
+# class DataWithChannelID(Protocol):
+#     channel_id: str
+
+# class EventPayloadWithChannelID(Protocol):
+#     op_code: Literal[OpCode.Dispatch] = OpCode.Dispatch
+#     seq_no: int
+#     """ 序列号 """
+#     type: EventType
+#     """ 事件类型 """
+#     data: DataWithChannelID
+#     """ 事件数据 """
 
 def _event_payloads() -> type[ReadyEventPayload] | type[ResumedEventPayload] | type[EventPayload]:
     return Annotated[

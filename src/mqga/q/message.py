@@ -2,16 +2,22 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 
-class User(BaseModel):
-    """ 用户信息 """
+class IDOnlyUser(BaseModel):
+    """ 有 ID 的用户 """
     id: str
     """ 用户 ID """
+
+class User(IDOnlyUser):
+    """ 有 ID 和用户名的用户 """
     username: str
     """ 用户名 """
-    avatar: str
+    avatar: str | None = None
     """ 头像链接 """
-    bot: bool = False
+    bot: bool | None = None
     """ 是机器人 """
+
+class FullUser(User):
+    """ 用户（全部信息） """
     union_openid: str | None = None
     """ 互联应用 OpenID """
     union_user_account: str | None = None
@@ -61,7 +67,7 @@ class Role(BaseModel):
 
 class Member(BaseModel):
     """ 成员 """
-    user: User | None = None
+    user: FullUser | None = None
     """ 用户信息 """
     nick: str
     """ 用户昵称 """
@@ -124,13 +130,13 @@ class Message(BaseModel):
     """ 消息编辑时间 """
     mention_everyone: bool = False
     """ 是否 @ 全体 """
-    author: User
+    author: IDOnlyUser
     """ 消息发送者 """
     attachments: list[MessageAttachment] | None = None
     """ 附件列表 """
     embeds: list[MessageEmbed] | None = None
     """ 嵌入内容？ """
-    mentions: list[User] | None = None
+    mentions: list[FullUser] | None = None
     """ @ 的人 """
     member: Member | None = None
     """ 消息发送者的成员信息 """
@@ -151,6 +157,8 @@ class ChannelMessage(Message):
     """ 子频道 ID """
     guild_id: str
     """ 频道 ID """
+    author: FullUser
+    """ 消息发送者 """
 
 class DirectMessage(ChannelMessage):
     """ 私信消息 """
@@ -164,3 +172,36 @@ class PrivateMessage(Message):
 class GroupMessage(Message):
     """ 私聊消息 """
     group_id: str
+
+from mqga.q.constant import ReactionTargetType
+
+class ReactionTarget(BaseModel):
+    """ 表态目标 """
+    id: str
+    """ 表态目标 ID """
+    type: ReactionTargetType | str
+    """ 表态目标类型 """
+
+from mqga.q.constant import EmojiType
+
+class Emoji(BaseModel):
+    """ 表情 """
+    id: str
+    """ QQ 表情 ID 或 emoji 本体 """
+    type: EmojiType
+    """ 表情类型 """
+
+class MessageReaction(BaseModel):
+    """ 对消息的表情表态 """
+    user_id: str
+    """ 用户 ID """
+    guild_id: str
+    """ 频道 ID """
+    channel_id: str
+    """ 子频道 ID """
+    target: ReactionTarget
+    """ 表态目标 """
+    emoji: Emoji
+    """ 表情表态 """
+
+ChannelAndMessageID = ChannelMessage | MessageReaction

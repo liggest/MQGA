@@ -15,9 +15,12 @@ from mqga.q.payload import Payload
 from mqga.q.payload import HeartbeatPayload
 from mqga.q.payload import HelloPayload, HeartbeatAckPayload, InvalidSessionPayload, ReconnectPayload
 from mqga.q.payload import ResumePayload, ResumeData, IdentifyPayload, IdentifyData
-from mqga.q.payload import EventPayload, ReadyEventPayload, ResumedEventPayload, ChannelAtMessageEventPayload
+from mqga.q.payload import EventPayload, ReadyEventPayload, ResumedEventPayload
+from mqga.q.payload import ChannelAtMessageEventPayload
+from mqga.q.payload import ChannelMessageReactionAddEventPayload, ChannelMessageReactionRemoveEventPayload
 from mqga.q.payload import receive_payloads_type
-from mqga.q.constant import DefaultIntents
+from mqga.q.message import User
+from mqga.q.constant import DefaultIntents, Intents
 from mqga.log import log
 
 class WSState(Enum):
@@ -37,13 +40,15 @@ class WSHandler:
     def __init__(self, ws: WS):
         self.ws = ws
         self._last_seq_no = 0
-        self.intents = DefaultIntents
+        self.intents = DefaultIntents | Intents.GUILD_MESSAGE_REACTIONS  # TODO 测试用
         self.state = WSState.Closed
 
         self._session_id = ""
 
         self._heartbeat_interval = 0
         self._heartbeat_task: asyncio.Task = None
+
+        self._user: User = None
 
     @cached_property
     def ReceivePayloadsType(self):
@@ -71,6 +76,7 @@ class WSHandler:
                     case ReadyEventPayload():
                         self._session_id = payload.data.session_id
                         log.debug(f"我的信息：{payload.data.user!r}")
+                        self._user = payload.data.user
                         self._start_heartbeat()
                         self.to_connected_session()
                     case ResumedEventPayload():
@@ -80,6 +86,25 @@ class WSHandler:
                         log.debug(f"收到消息：{payload.data!r}")
                         if payload.data.content.lower().endswith("hello"):
                             await self.ws.bot._api.channel_reply("全体目光向我看齐，我宣布个事儿！\nMQGA！", payload)
+                    case ChannelMessageReactionAddEventPayload():
+                        if self._user.id != payload.data.user_id:
+                            log.debug(f"收到表情表态：{payload.data!r}")
+                            if all(self._user.id != user.id for user in 
+                                   await self.ws.bot._api.channel_reaction_get_head_users(payload.data, payload.data.emoji)):
+                                log.debug("自己也贴个表情…")
+                                await self.ws.bot._api.channel_reaction(payload.data, payload.data.emoji)
+                        else:
+                            log.debug(f"收到自己的表情表态：{payload.data!r}")
+                    case ChannelMessageReactionRemoveEventPayload():
+                        if self._user.id != payload.data.user_id:
+                            log.debug(f"表情表态被取消：{payload.data!r}")
+                            if any(self._user.id == user.id for user in 
+                                   await self.ws.bot._api.channel_reaction_get_head_users(payload.data, payload.data.emoji)):
+                                log.debug("也取消自己贴的表情…")
+                                await self.ws.bot._api.channel_reaction_delete(payload.data, payload.data.emoji)
+                        else:
+                            log.debug(f"自己的表情表态被取消：{payload.data!r}")
+                        
             case InvalidSessionPayload():
                 self._session_id = ""
             case HeartbeatAckPayload() | ReconnectPayload():

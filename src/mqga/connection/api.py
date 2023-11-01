@@ -7,20 +7,23 @@ import time
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.bot import Bot
+    from mqga.q.payload import EventPayloadWithChannelID
+    from mqga.q.message import Emoji, ChannelAndMessageID
 
 import httpx
 
 from mqga import LEGACY
 from mqga.log import log
-from mqga.q.payload import ChannelAtMessageEventPayload, EventPayload
-from mqga.q.message import Message
+from mqga.q.payload import ChannelAtMessageEventPayload
+from mqga.q.message import Message, ChannelMessage, MessageReaction
+from mqga.q.message import User
 
 class APIError(Exception):
 
     def __init__(self, data: dict):
         self._data = data
-        if self.message:
-            super().__init__(self.code, self.message)
+        if message := self.message:
+            super().__init__(self.code, message)
         else:
             super().__init__(self.code)
 
@@ -87,9 +90,17 @@ class API:
         await self._ensure_token()
         return self._handle_response(await self._client.get(api, params=params, timeout=timeout, **kw))
 
-    async def _post(self, api: str, data: dict, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         return self._handle_response(await self._client.post(api, json=data, timeout=timeout, **kw))
+
+    async def _put(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+        await self._ensure_token()
+        return self._handle_response(await self._client.put(api, json=data, timeout=timeout, **kw))
+
+    async def _delete(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+        await self._ensure_token()
+        return self._handle_response(await self._client.delete(api, params=params, timeout=timeout, **kw))
 
     def _handle_response(self, response: httpx.Response):
         http_error = None
@@ -97,13 +108,15 @@ class API:
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
             http_error = e
+        if response.status_code == 204: # 无数据
+            return True
         data: dict = response.json()
         if (data and "code" in data):
             if http_error:
                 raise APIError(data) from http_error
             else:
                 raise APIError(data)
-        return data
+        return data or response.is_success
 
     async def _ensure_token(self):
         if self._token:
@@ -179,8 +192,35 @@ class API:
         rj = await self._get("/gateway")
         return rj["url"]
 
-    async def channel_reply(self, content: str, event: EventPayload):  # TODO
+    async def channel_reply(self, content: str, event: EventPayloadWithChannelID):  # TODO
         return Message(**await self._post(f"/channels/{event.data.channel_id}/messages", data={
             "content": content,
             **({"msg_id": event.data.id} if isinstance(event, ChannelAtMessageEventPayload) else {"event_id": event.type})
         }))
+
+    def _channel_reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):
+        if isinstance(message, ChannelMessage):
+            return f"/channels/{message.channel_id}/messages/{message.id}/reactions/{emoji.type}/{emoji.id}"
+        return f"/channels/{message.channel_id}/messages/{message.target.id}/reactions/{emoji.type}/{emoji.id}"
+
+    async def channel_reaction(self, message: ChannelAndMessageID, emoji: Emoji):
+        return await self._put(self._channel_reaction_url(message, emoji))
+
+    async def channel_reaction_delete(self, message: ChannelAndMessageID, emoji: Emoji):
+        return await self._delete(self._channel_reaction_url(message, emoji))
+
+    async def channel_reaction_get_users_gen(self, message: ChannelAndMessageID, emoji: Emoji, per_page = 20):
+        if per_page > 50:
+            raise ValueError(f"{per_page=}，应确保 20 <= per_page <= 50")
+        url = self._channel_reaction_url(message, emoji)
+        data = {"limit": per_page}
+        result = await self._get(url, data)
+        data.clear()
+        yield [User(**user) for user in result["users"]]
+        while not result["is_end"]:
+            data["cookie"] = result["cookie"]
+            result = await self._get(url, data)
+            yield [User(**user) for user in result["users"]]
+
+    async def channel_reaction_get_head_users(self, message: ChannelMessage | MessageReaction, emoji: Emoji, limit = 20): # 只能得到第一批
+        return await anext(self.channel_reaction_get_users_gen(message, emoji, limit))
