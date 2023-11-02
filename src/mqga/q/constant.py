@@ -343,6 +343,7 @@ class EventPair:
     """ 是私域事件 """
 
 class EventType2Intent(EventPair, Enum):
+    """ 事件类型与接收意向的对应关系 """
 
     GUILD_CREATE   = (Intents.GUILDS, EventType.GulidJoin)
     GUILD_DELETE   = (Intents.GUILDS, EventType.GulidDelete)
@@ -396,6 +397,8 @@ class EventType2Intent(EventPair, Enum):
 
     AT_MESSAGE_CREATE = (Intents.PUBLIC_GUILD_MESSAGES, EventType.ChannelAtMessageCreate)
     PUBLIC_MESSAGE_DELETE = (Intents.PUBLIC_GUILD_MESSAGES, EventType.GulidMessageDelete)
+
+    # TODO 群和私聊
 
 class RoleID(str, Enum):
     """ 身份组 ID """
