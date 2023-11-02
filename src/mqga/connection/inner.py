@@ -20,7 +20,7 @@ from mqga.q.payload import ChannelAtMessageEventPayload
 from mqga.q.payload import ChannelMessageReactionAddEventPayload, ChannelMessageReactionRemoveEventPayload
 from mqga.q.payload import receive_payloads_type
 from mqga.q.message import User
-from mqga.q.constant import DefaultIntents, Intents
+from mqga.q.constant import Intents
 from mqga.log import log
 
 class WSState(Enum):
@@ -34,13 +34,13 @@ class WSState(Enum):
     ConnectedSession = auto()
     """ 已链接，已鉴权 """
 
-class WSHandler:
+class WSInner:
     """ 处理 WS 中各种琐碎的逻辑 """
     
     def __init__(self, ws: WS):
         self.ws = ws
         self._last_seq_no = 0
-        self.intents = DefaultIntents | Intents.GUILD_MESSAGE_REACTIONS  # TODO 测试用
+        self.intents = Intents.DEFAULT | Intents.GUILD_MESSAGE_REACTIONS  # TODO 测试用
         self.state = WSState.Closed
 
         self._session_id = ""

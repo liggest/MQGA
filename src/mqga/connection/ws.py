@@ -9,7 +9,7 @@ import asyncio
 import websockets
 
 from mqga.log import log
-from mqga.connection.handle import WSHandler
+from mqga.connection.inner import WSInner
 
 class WS:
 
@@ -19,11 +19,11 @@ class WS:
         self.client = None
         self._connect_task: asyncio.Task = None
 
-        self.handler: WSHandler = None
+        self.handler: WSInner = None
 
     async def init(self):
         log.info("WS 初始化")
-        self.handler = WSHandler(self)
+        self.handler = WSInner(self)
         self._start_connect()
 
     async def stop(self):

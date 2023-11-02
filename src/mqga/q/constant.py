@@ -1,4 +1,5 @@
 from enum import Enum, IntEnum, IntFlag
+from dataclasses import dataclass
 
 class OpCode(IntEnum):
     """
@@ -30,7 +31,10 @@ class OpCode(IntEnum):
     """ Reply 仅用于 http 回调模式的回包，代表机器人收到了平台推送的数据 """
 
 class Intents(IntFlag):
-    """ 用于标记一类事件 """
+    """ 用于标记一类事件，表明 ws 接收该类事件的意向 """
+    NONE = 0
+    """ 无 """
+    
     GUILDS = 1 << 0
     """ 频道 """
     GUILD_MEMBERS = 1 << 1
@@ -57,8 +61,11 @@ class Intents(IntFlag):
     """ 音频动作 """
     PUBLIC_GUILD_MESSAGES = 1 << 30
     """ 频道消息（公域） """
+    
+    DEFAULT = GUILDS | PUBLIC_GUILD_MESSAGES | GUILD_MEMBERS
+    """ 默认意向 """
 
-DefaultIntents = Intents.GUILDS | Intents.PUBLIC_GUILD_MESSAGES | Intents.GUILD_MEMBERS
+# DefaultIntents = Intents.GUILDS | Intents.PUBLIC_GUILD_MESSAGES | Intents.GUILD_MEMBERS
 
 # class Event:
 #     """ 事件 """
@@ -325,6 +332,70 @@ class EventType(str, Enum):
     """ 音频子频道上麦时 """
     AudioOffMic = "AUDIO_OFF_MIC"
     """ 音频子频道下麦时 """
+
+@dataclass(frozen=True)
+class EventPair:
+    intent: Intents
+    """ 事件接收意向 """
+    type: EventType
+    """ 事件类型 """
+    is_private: bool = False
+    """ 是私域事件 """
+
+class EventType2Intent(EventPair, Enum):
+
+    GUILD_CREATE   = (Intents.GUILDS, EventType.GulidJoin)
+    GUILD_DELETE   = (Intents.GUILDS, EventType.GulidDelete)
+    GUILD_UPDATE   = (Intents.GUILDS, EventType.GulidUpdate)
+    CHANNEL_CREATE = (Intents.GUILDS, EventType.ChannelCreate)
+    CHANNEL_UPDATE = (Intents.GUILDS, EventType.ChannelUpdate)
+    CHANNEL_DELETE = (Intents.GUILDS, EventType.ChannelDelete)
+    
+    GUILD_MEMBER_ADD    = (Intents.GUILD_MEMBERS, EventType.GulidMemberAdd)
+    GUILD_MEMBER_UPDATE = (Intents.GUILD_MEMBERS, EventType.GulidMemberUpdate)
+    GUILD_MEMBER_REMOVE = (Intents.GUILD_MEMBERS, EventType.GulidMemberRemove)
+
+    MESSAGE_CREATE = (Intents.GUILD_MESSAGES, EventType.ChannelMessageCreate, True)  # 私域
+    MESSAGE_DELETE = (Intents.GUILD_MESSAGES, EventType.ChannelMessageDelete, True)
+
+    MESSAGE_REACTION_ADD    = (Intents.GUILD_MESSAGE_REACTIONS, EventType.ChannelMessageReactionAdd)
+    MESSAGE_REACTION_REMOVE = (Intents.GUILD_MESSAGE_REACTIONS, EventType.ChannelMessageReactionRemove)
+
+    DIRECT_MESSAGE_CREATE = (Intents.DIRECT_MESSAGE, EventType.DirectMessageCreate)
+    DIRECT_MESSAGE_DELETE = (Intents.DIRECT_MESSAGE, EventType.DirectMessageDelete)
+
+    OPEN_FORUM_THREAD_CREATE = (Intents.OPEN_FORUMS_EVENT, EventType.OpenForumThreadCreate)
+    OPEN_FORUM_THREAD_UPDATE = (Intents.OPEN_FORUMS_EVENT, EventType.OpenForumThreadUpdate)
+    OPEN_FORUM_THREAD_DELETE = (Intents.OPEN_FORUMS_EVENT, EventType.OpenForumThreadDelete)
+    OPEN_FORUM_POST_CREATE   = (Intents.OPEN_FORUMS_EVENT, EventType.OpenForumPostCreate)
+    OPEN_FORUM_POST_DELETE   = (Intents.OPEN_FORUMS_EVENT, EventType.OpenForumPostDelete)
+    OPEN_FORUM_REPLY_CREATE  = (Intents.OPEN_FORUMS_EVENT, EventType.OpenForumReplyCreate)
+    OPEN_FORUM_REPLY_DELETE  = (Intents.OPEN_FORUMS_EVENT, EventType.OpenForumReplyDelete)
+
+    AUDIO_OR_LIVE_CHANNEL_MEMBER_ENTER = (Intents.AUDIO_OR_LIVE_CHANNEL_MEMBER, EventType.AudioOrLiveMemberEnter)
+    AUDIO_OR_LIVE_CHANNEL_MEMBER_EXIT  = (Intents.AUDIO_OR_LIVE_CHANNEL_MEMBER, EventType.AudioOrLiveMemberExit)
+
+    INTERACTION_CREATE = (Intents.INTERACTION, EventType.ChannelInteractionCreate)
+
+    MESSAGE_AUDIT_PASS   = (Intents.MESSAGE_AUDIT, EventType.ChannelMessageAuditPass)
+    MESSAGE_AUDIT_REJECT = (Intents.MESSAGE_AUDIT, EventType.ChannelMessageAuditReject)
+
+    FORUM_THREAD_CREATE = (Intents.FORUMS_EVENT, EventType.ForumThreadCreate, True)  # 私域
+    FORUM_THREAD_UPDATE = (Intents.FORUMS_EVENT, EventType.ForumThreadUpdate, True)
+    FORUM_THREAD_DELETE = (Intents.FORUMS_EVENT, EventType.ForumThreadDelete, True)
+    FORUM_POST_CREATE   = (Intents.FORUMS_EVENT, EventType.ForumPostCreate, True)
+    FORUM_POST_DELETE   = (Intents.FORUMS_EVENT, EventType.ForumPostDelete, True)
+    FORUM_REPLY_CREATE  = (Intents.FORUMS_EVENT, EventType.ForumReplyCreate, True)
+    FORUM_REPLY_DELETE  = (Intents.FORUMS_EVENT, EventType.ForumReplyDelete, True)
+    FORUM_PUBLISH_AUDIT_RESULT = (Intents.FORUMS_EVENT, EventType.ForumAuditResult, True)
+
+    AUDIO_START   = (Intents.AUDIO_ACTION, EventType.AudioStart)
+    AUDIO_FINISH  = (Intents.AUDIO_ACTION, EventType.AudioFinish)
+    AUDIO_ON_MIC  = (Intents.AUDIO_ACTION, EventType.AudioOnMic)
+    AUDIO_OFF_MIC = (Intents.AUDIO_ACTION, EventType.AudioOffMic)
+
+    AT_MESSAGE_CREATE = (Intents.PUBLIC_GUILD_MESSAGES, EventType.ChannelAtMessageCreate)
+    PUBLIC_MESSAGE_DELETE = (Intents.PUBLIC_GUILD_MESSAGES, EventType.GulidMessageDelete)
 
 class RoleID(str, Enum):
     """ 身份组 ID """
