@@ -19,19 +19,19 @@ class WS:
         self.client = None
         self._connect_task: asyncio.Task = None
 
-        self.handler: WSInner = None
+        self.inner: WSInner = None
 
     async def init(self):
         log.info("WS 初始化")
-        self.handler = WSInner(self)
+        self.inner = WSInner(self)
         self._start_connect()
 
     async def stop(self):
         log.info("WS 停止")
         if self._connect_task:
             self._connect_task.cancel()
-        self.handler.to_closed()
-        self.handler = None
+        self.inner.to_closed()
+        self.inner = None
 
     async def __aenter__(self):
         # 并不在这里初始化，而是在 bot 初始化时初始化
@@ -47,17 +47,17 @@ class WS:
             log.debug(f"WS 拿到接入点 {self.url}")
         
         try:
-            self.handler.to_connecting()
+            self.inner.to_connecting()
             async with websockets.connect(self.url) as self.client:
                 log.info("WS 已连接")
-                self.handler.to_connected_raw()
+                self.inner.to_connected_raw()
                 await self.receive()
         except websockets.exceptions.ConnectionClosed:
             log.warning("WS 连接关闭")
         finally:
             log.info("WS 已断开")
-            if self.handler:
-                self.handler.to_closed()
+            if self.inner:
+                self.inner.to_closed()
             if not self.bot._ended.is_set():
                 await self.reconnect()
 
@@ -70,7 +70,7 @@ class WS:
         client = self.client
         end = self.bot._ended
         while not end.is_set():
-            asyncio.create_task(self.handler(await client.recv()))
+            asyncio.create_task(self.inner(await client.recv()))
                 
     def _task_done(self, task: asyncio.Task):
         if task.cancelled():
