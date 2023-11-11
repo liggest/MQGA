@@ -1,3 +1,5 @@
+""" Websocket 连接 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -9,7 +11,7 @@ import asyncio
 import websockets
 
 from mqga.log import log
-from mqga.connection.inner import WSInner
+from mqga.connection.ws.inner import WSInner
 
 class WS:
 
