@@ -48,16 +48,22 @@ class API:
         self._client: httpx.AsyncClient = None
 
     if LEGACY:
+        @property
+        def _authorization(self):
+            return f"Bot {self.bot.APPID}.{self.bot.APP_TOKEN}"
+
         @cached_property
         def header(self):
-            return {
-                "Authorization": f"Bot {self.bot.APPID}.{self.bot.APP_TOKEN}"
-            }
+            return {"Authorization": self._authorization}
     else:
+        @property
+        def _authorization(self):
+            return f"QQBot {self._token}"
+
         @cached_property
         def header(self):
             return {
-                "Authorization": f"QQBot {self._token}",
+                "Authorization": self._authorization,
                 "X-Union-Appid": f"{self.bot.APPID}"
             }
 
