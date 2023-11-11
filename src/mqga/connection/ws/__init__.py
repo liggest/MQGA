@@ -15,7 +15,7 @@ from mqga.connection.ws.inner import WSInner
 
 class WS:
 
-    def __init__(self, bot:Bot):
+    def __init__(self, bot: Bot):
         self.bot = bot
         self.url = ""
         self.client = None

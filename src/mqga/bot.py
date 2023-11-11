@@ -6,7 +6,9 @@ from mqga import LEGACY
 from mqga.connection.api import API
 from mqga.connection.ws import WS
 from mqga.log import log
-
+from mqga.event.manager import Manager as EventManager
+from mqga.lookup.context import BotContext
+from mqga.plugin import loader
 
 class Bot:
     """ 统一管理连接、消息处理等，并提供一些方法来调用 api """
@@ -17,6 +19,7 @@ class Bot:
 
         self._api = API(self)
         self._ws = WS(self)
+        self._em = EventManager(self)
 
 
     @property
@@ -44,10 +47,22 @@ class Bot:
     def TIMEOUT(self):
         # raise NotImplementedError  # TODO
         return None
+    
+    @property
+    def PLUGIN_PATH(self):
+        from pathlib import Path
+        return Path("./plugin")
+
+    @property
+    def intents(self):
+        return self._em.intents
 
     async def init(self):
         log.info("Bot 初始化，MQGA！")
 
+        self._context = BotContext(self)
+        self._plugins = loader.load()
+        
         await self._api.init()
         await self._ws.init()
 
@@ -86,3 +101,8 @@ class Bot:
             asyncio.run(self._run())
         except KeyboardInterrupt:
             log.info("Bot 已成功打断")
+
+    @property
+    def user(self):
+        if self._ws.inner:
+            return self._ws.inner._user
