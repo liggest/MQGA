@@ -6,6 +6,12 @@ import time
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from typing import TypedDict
+
+    class ResponseToken(TypedDict):
+        access_token: str
+        expires_in: str | int
+
     from mqga.bot import Bot
     from mqga.q.payload import EventPayloadWithChannelID
     from mqga.q.message import Emoji, ChannelAndMessageID
@@ -34,7 +40,6 @@ class APIError(Exception):
     @property
     def message(self):
         return self._data.get("message")
-
 
 class API:
 
@@ -79,9 +84,10 @@ class API:
         return asyncio.create_task(self._fetch_token())
 
     @property
-    async def token(self):
+    async def authorization(self):
+        """ 需要 await 去检查是否是最新的 """
         await self._ensure_token()
-        return self._token
+        return self._authorization
 
     if LEGACY:
         @cached_property
@@ -140,9 +146,8 @@ class API:
 
     async def _fetch_token(self):
         async with httpx.AsyncClient() as client:
-            data = (await client.post(self.TOKEN_URL, json=self._token_data)).json()
-        self._token, expire_time = data["access_token"], int(
-            data["expires_in"])
+            data: ResponseToken = (await client.post(self.TOKEN_URL, json=self._token_data)).json()
+        self._token, expire_time = data["access_token"], int(data["expires_in"])
         log.info(f"拿到了新访问符，{expire_time} 秒后要再拿 :(")
         self._expire_time = time.time() + expire_time
         self._fetch_time = self._expire_time - self.TOKEN_INTERVAL  # 过期前就获取新的
