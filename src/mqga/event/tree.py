@@ -28,6 +28,7 @@ from mqga.q.payload import Payload, EventPayload
 #     Message
 #       FullMatch
 #       Regexp
+#       Filter
 
 class RootEvent(PlainEvent):
 

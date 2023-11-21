@@ -12,10 +12,14 @@ if TYPE_CHECKING:
     from mqga.q.constant import EventType
     from mqga.q.message import Message
 
+from mqga.log import log
 from mqga.q.constant import Intents, EventType2Intent
 from mqga.q.message import Emoji
 from mqga.q.payload import EventPayload, ChannelAtMessageEventPayload
 from mqga.q.payload import ChannelMessageReactionAddEventPayload, ChannelMessageReactionRemoveEventPayload
+from mqga.q.payload import GroupAtMessageEventPayload, PrivateMessageEventPayload
+
+MessageEventPayload = ChannelAtMessageEventPayload | GroupAtMessageEventPayload | PrivateMessageEventPayload
 
 T = TypeVar("T")
 EventPayloadT = TypeVar("EventPayloadT", bound=EventPayload)
@@ -61,17 +65,34 @@ class Dispatcher(Generic[EventPayloadT], metaclass=DispatcherMeta):
         pass
 
     def __init_subclass__(subcls):
+        if subcls._event_type is Dispatcher._event_type:
+            return
+        if old_sub := subcls._subs.get(subcls._event_type):
+            log.warning(f"{subcls!r} 覆盖了 {old_sub!r}")
         subcls._subs[subcls._event_type] = subcls
 
     async def is_accept(self, bot: Bot, payload: EventPayloadT, event: Event) -> bool:
         # TODO
         raise NotImplementedError
 
-    async def dispatch(self, bot: Bot, payload: EventPayloadT) -> bool:
+    async def _pre_dispatch(self, bot: Bot, payload: EventPayloadT):
         bot._context.payload = payload
-        return False
 
-    async def emit(self, bot: Bot, payload: EventPayloadT):
+    async def _handle_emit(self, result: T, bot: Bot, payload: EventPayloadT):
+        pass
+
+    async def _post_dispatch(self, bot: Bot, payload: EventPayloadT):
+        pass
+
+    async def dispatch(self, bot: Bot, payload: EventPayloadT):
+        await self._pre_dispatch(bot, payload)
+
+        for result in await self.emit(bot, payload):
+            await self._handle_emit(result, bot, payload)
+        
+        await self._post_dispatch(bot, payload)
+        
+    async def emit(self, bot: Bot, payload: EventPayloadT) -> Iterable[T]:
         if event := self._event_payload_event(bot):
             return await event.emit()
         
@@ -79,26 +100,22 @@ class Dispatcher(Generic[EventPayloadT], metaclass=DispatcherMeta):
         if event := self._event_payload_event(bot):
             event.register(box)
 
-class ChannelAtMessageDispatcher(Dispatcher[ChannelAtMessageEventPayload]):
+# TODO 改进写法
+class MessageDispatcher(Dispatcher):
 
     @staticmethod
     def flatten(iter_iters: Iterable[Iterable[T]]) -> Generator[T, None, None]:
         return (item for it in iter_iters if it for item in it if item is not None)
-
+    
     def __init__(self, manager: Manager):
         self._message_event = manager._root_event.qq_event.message_event
 
-    async def dispatch(self, bot, payload):
-        await super().dispatch(bot, payload)
+    async def _pre_dispatch(self, bot, payload: MessageEventPayload):
+        await super()._pre_dispatch(bot, payload)
         context = bot._context
         context.message = payload.data
 
-        for result in await self.emit(bot, payload):
-            await bot._api.channel_reply(result, payload)
-        
-        return True
-
-    async def emit(self, bot, payload) -> Generator[str, None, None]:
+    async def emit(self, bot, payload: MessageEventPayload) -> Iterable[str]:
         message = payload.data
         return self.flatten(await asyncio.gather(
             self.full_match_emit(bot, message),
@@ -136,27 +153,50 @@ class ChannelAtMessageDispatcher(Dispatcher[ChannelAtMessageEventPayload]):
         super().register(bot, box)
         self._message_event.register(box)
 
+class ChannelAtMessageDispatcher(MessageDispatcher[ChannelAtMessageEventPayload]):
+
+    # @staticmethod
+    # def flatten(iter_iters: Iterable[Iterable[T]]) -> Generator[T, None, None]:
+    #     return (item for it in iter_iters if it for item in it if item is not None)
+
+    # def __init__(self, manager: Manager):
+    #     self._message_event = manager._root_event.qq_event.message_event
+
+    async def _handle_emit(self, result: str, bot, payload):
+        return await bot._api.channel_reply(result, payload)
+
+    # async def dispatch(self, bot, payload):
+    #     await super().dispatch(bot, payload)
+    #     context = bot._context
+    #     context.message = payload.data
+
+    #     for result in await self.emit(bot, payload):
+    #         await bot._api.channel_reply(result, payload)
+        
+    #     return True
+
 # TODO 改进写法
 class ChannelMessageReactionAddDispatcher(Dispatcher[ChannelMessageReactionAddEventPayload]):
 
-    async def dispatch(self, bot, payload):
-        await super().dispatch(bot, payload)
-        print(123123)
-
-        for result in await self.emit(bot, payload):
-            if isinstance(result, Emoji):
-                await bot._api.channel_reaction(payload.data, result)
-        
-        return True
+    async def _handle_emit(self, result, bot, payload):
+        if isinstance(result, Emoji):
+            return await bot._api.channel_reaction(payload.data, result)
 
 # TODO 改进写法
 class ChannelMessageReactionRemoveDispatcher(Dispatcher[ChannelMessageReactionRemoveEventPayload]):
     
-    async def dispatch(self, bot, payload):
-        await super().dispatch(bot, payload)
+    async def _handle_emit(self, result, bot, payload):
+        if isinstance(result, Emoji):
+            return await bot._api.channel_reaction_delete(payload.data, result)
 
-        for result in await self.emit(bot, payload):
-            if isinstance(result, Emoji):
-                await bot._api.channel_reaction_delete(payload.data, result)
-        
-        return True
+# TODO 改进写法
+class GroupAtMessageDispatcher(MessageDispatcher[GroupAtMessageEventPayload]):
+
+    async def _handle_emit(self, result: str, bot, payload):
+        return await bot._api.group_reply(result, payload)
+
+# TODO 改进写法
+class PrivateMessageDispatcher(MessageDispatcher[PrivateMessageEventPayload]):
+
+    async def _handle_emit(self, result: str, bot, payload):
+        return await bot._api.private_reply(result, payload)

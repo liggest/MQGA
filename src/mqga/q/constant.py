@@ -399,6 +399,8 @@ class EventType2Intent(EventPair, Enum):
     PUBLIC_MESSAGE_DELETE = (Intents.PUBLIC_GUILD_MESSAGES, EventType.GulidMessageDelete)
 
     # TODO 群和私聊
+    C2C_MESSAGE_CREATE = (Intents.GROUP_PRIVATE_MESSAGES, EventType.PrivateMessageCreate)
+    GROUP_AT_MESSAGE_CREATE = (Intents.GROUP_PRIVATE_MESSAGES, EventType.GroupAtMessageCreate)
 
 class RoleID(str, Enum):
     """ 身份组 ID """

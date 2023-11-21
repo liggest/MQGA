@@ -106,10 +106,7 @@ class WSInner:
                     #             await self.ws.bot._api.channel_reaction_delete(payload.data, payload.data.emoji)
                     #     else:
                     #         log.debug(f"自己的表情表态被取消：{payload.data!r}")
-                if await self.ws.bot._em.dispatch(payload):
-                    log.debug(f"{payload.type} 事件分发成功")
-                else:
-                    log.warning(f"未能分发 {payload.type} 事件！")
+                await self.ws.bot._em.dispatch(payload)
                         
             case InvalidSessionPayload():
                 self._session_id = ""

@@ -95,16 +95,16 @@ class InvalidSessionPayload(Payload):
 class ReconnectPayload(Payload):
     op_code: Literal[OpCode.Reconnect] = OpCode.Reconnect
 
-class UnknownPayload(Payload):
-    model_config = ConfigDict(extra="allow")
+# class UnknownPayload(Payload):
+#     model_config = ConfigDict(extra="allow")
 
-    op_code: OpCode
-    seq_no: int | None = None
-    """ 序列号 """
-    type: str | None = None
-    """ 事件类型 """
-    data: Any = None
-    """ 事件数据 """
+#     op_code: OpCode
+#     seq_no: int | None = None
+#     """ 序列号 """
+#     type: str | None = None
+#     """ 事件类型 """
+#     data: Any = None
+#     """ 事件数据 """
 
 class ChannelAtMessageEventPayload(EventPayload):
     type: Literal[EventType.ChannelAtMessageCreate] = EventType.ChannelAtMessageCreate

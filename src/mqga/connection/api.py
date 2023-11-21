@@ -12,6 +12,10 @@ if TYPE_CHECKING:
         access_token: str
         expires_in: str | int
 
+    class RepliedMessage(TypedDict):
+        id: str
+        timestamp: int
+
     from mqga.bot import Bot
     from mqga.q.payload import EventPayloadWithChannelID
     from mqga.q.message import Emoji, ChannelAndMessageID
@@ -21,7 +25,8 @@ import httpx
 from mqga import LEGACY
 from mqga.log import log
 from mqga.q.payload import ChannelAtMessageEventPayload
-from mqga.q.message import Message, ChannelMessage, MessageReaction
+from mqga.q.payload import GroupAtMessageEventPayload, PrivateMessageEventPayload
+from mqga.q.message import ChannelMessage, MessageReaction
 from mqga.q.message import User
 
 class APIError(Exception):
@@ -199,14 +204,17 @@ class API:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.stop()
 
+    # ========== #
+
     async def ws_url(self) -> str:
         rj = await self._get("/gateway")
         return rj["url"]
 
-    async def channel_reply(self, content: str, event: EventPayloadWithChannelID):  # TODO
-        return Message(**await self._post(f"/channels/{event.data.channel_id}/messages", data={
+    async def channel_reply(self, content: str, payload: EventPayloadWithChannelID):  # TODO
+        return ChannelMessage(**await self._post(f"/channels/{payload.data.channel_id}/messages", data={
             "content": content,
-            **({"msg_id": event.data.id} if isinstance(event, ChannelAtMessageEventPayload) else {"event_id": event.type})
+            **({"msg_id": payload.data.id} if isinstance(payload, ChannelAtMessageEventPayload) 
+                else {"event_id": payload.type})
         }))
 
     def _channel_reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):
@@ -235,3 +243,21 @@ class API:
 
     async def channel_reaction_get_head_users(self, message: ChannelMessage | MessageReaction, emoji: Emoji, limit = 20): # 只能得到第一批
         return await anext(self.channel_reaction_get_users_gen(message, emoji, limit))
+
+    async def group_reply(self, content: str, payload: GroupAtMessageEventPayload) -> RepliedMessage:
+        message_type = 0  # TODO 其它消息类型
+        return await self._post(f"/v2/groups/{payload.data.group_id}/messages", data={
+            "content": content,
+            "msg_type": message_type,
+            **({"msg_id": payload.data.id} if isinstance(payload, GroupAtMessageEventPayload) 
+                else {"event_id": payload.type})  # TODO event_id
+        })
+
+    async def private_reply(self, content: str, payload: PrivateMessageEventPayload) -> RepliedMessage:
+        message_type = 0  # TODO 其它消息类型
+        return await self._post(f"/v2/users/{payload.data.author.id}/messages", data={
+            "content": content,
+            "msg_type": message_type,
+            **({"msg_id": payload.data.id} if isinstance(payload, PrivateMessageEventPayload) 
+                else {"event_id": payload.type})  # TODO event_id
+        })
