@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 from mqga.log import log
 from mqga.event.dispatcher import Dispatcher
-from mqga.event.tree import RootEvent
+# from mqga.event.tree import RootEvent
 from mqga.event.space import Space
 from mqga.q.payload import EventPayload
 from mqga.q.constant import Intents
