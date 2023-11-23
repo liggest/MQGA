@@ -10,11 +10,14 @@ if TYPE_CHECKING:
 T = TypeVar("T", bound=Callable)
 
 from mqga.event.box import Box
-from mqga.event.event import Event, StrEvent
+from mqga.event.event import MultiEvent, StrEvent, PlainReturns
 from mqga.event.dispatcher import Dispatcher
 from mqga.event.dispatcher import ChannelAtMessageDispatcher, GroupAtMessageDispatcher, PrivateMessageDispatcher
 from mqga.q.constant import EventType
 from mqga.q.message import Emoji
+from mqga.q.payload import EventPayload
+
+EmojiEvent = MultiEvent[[], Emoji | PlainReturns]
 
 def _deco_init(func: T):
     from mqga.lookup.context import context
@@ -39,31 +42,33 @@ class OnChannelMessage:
     def full_match(self, content: str):
         """ 完全匹配 content """
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, ChannelAtMessageDispatcher)
-            parent = dispatcher._message_event
-            event = parent.full_match_events.get(content) or StrEvent(f"qq_message_full_match_{content!r}", parent)
-            event.register(box)
-            parent.full_match_events.__setitem__(content, event)
+            context, box, dispatcher = _deco_init_dispatcher(func, ChannelAtMessageDispatcher)
+            context.bot._em.events.message_full_match(content).register(box)
+            dispatcher.register(context.bot, box)
+            # parent = dispatcher._message_event
+            # event = parent.full_match_events.get(content) or StrEvent(f"qq_message_full_match_{content!r}", parent)
+            # event.register(box)
+            # parent.full_match_events.__setitem__(content, event)
             return func
         return inner
     
     def regex(self, content: str):
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, ChannelAtMessageDispatcher)
-            parent = dispatcher._message_event
-            event = StrEvent(f"qq_message_regex_{content!r}", parent)
+            context, box, dispatcher = _deco_init_dispatcher(func, ChannelAtMessageDispatcher)
+            event = StrEvent(f"message_regex_{content!r}")
             event.register(box)
-            parent.regex_events.append((re.compile(content), event))
+            context.bot._em.events.message_regex.append((re.compile(content), event))
+            dispatcher.register(context.bot, box)
             return func
         return inner
 
     def filter_by(self, filter: Callable[[ChannelMessage], bool]):
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, ChannelAtMessageDispatcher)
-            parent = dispatcher._message_event
-            event = StrEvent(f"qq_message_filter_by_{filter!r}", parent)
+            context, box, dispatcher = _deco_init_dispatcher(func, ChannelAtMessageDispatcher)
+            event = StrEvent(f"message_filter_by_{filter!r}")
             event.register(box)
-            parent.filter_events.append((filter, event))
+            context.bot._em.events.message_filter_by.append((filter, event))
+            dispatcher.register(context.bot, box)
             return func
         return inner
 
@@ -77,35 +82,38 @@ class OnGroupMessage:
         return func
 
     def full_match(self, content: str):
+        """ 完全匹配 content """
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, GroupAtMessageDispatcher)
-            parent = dispatcher._message_event
-            event = parent.full_match_events.get(content) or StrEvent(f"qq_message_full_match_{content!r}", parent)
-            event.register(box)
-            parent.full_match_events.__setitem__(content, event)
+            context, box, dispatcher = _deco_init_dispatcher(func, GroupAtMessageDispatcher)
+            context.bot._em.events.message_full_match(content).register(box)
+            dispatcher.register(context.bot, box)
+            # parent = dispatcher._message_event
+            # event = parent.full_match_events.get(content) or StrEvent(f"qq_message_full_match_{content!r}", parent)
+            # event.register(box)
+            # parent.full_match_events.__setitem__(content, event)
             return func
         return inner
     
     def regex(self, content: str):
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, GroupAtMessageDispatcher)
-            parent = dispatcher._message_event
-            event = StrEvent(f"qq_message_regex_{content!r}", parent)
+            context, box, dispatcher = _deco_init_dispatcher(func, GroupAtMessageDispatcher)
+            event = StrEvent(f"message_regex_{content!r}")
             event.register(box)
-            parent.regex_events.append((re.compile(content), event))
+            context.bot._em.events.message_regex.append((re.compile(content), event))
+            dispatcher.register(context.bot, box)
             return func
         return inner
 
     def filter_by(self, filter: Callable[[ChannelMessage], bool]):
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, GroupAtMessageDispatcher)
-            parent = dispatcher._message_event
-            event = StrEvent(f"qq_message_filter_by_{filter!r}", parent)
+            context, box, dispatcher = _deco_init_dispatcher(func, GroupAtMessageDispatcher)
+            event = StrEvent(f"message_filter_by_{filter!r}")
             event.register(box)
-            parent.filter_events.append((filter, event))
+            context.bot._em.events.message_filter_by.append((filter, event))
+            dispatcher.register(context.bot, box)
             return func
         return inner
-
+    
 on_group_message = OnGroupMessage()
 
 class OnPrivateMessage:
@@ -116,32 +124,35 @@ class OnPrivateMessage:
         return func
 
     def full_match(self, content: str):
+        """ 完全匹配 content """
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, PrivateMessageDispatcher)
-            parent = dispatcher._message_event
-            event = parent.full_match_events.get(content) or StrEvent(f"qq_message_full_match_{content!r}", parent)
-            event.register(box)
-            parent.full_match_events.__setitem__(content, event)
+            context, box, dispatcher = _deco_init_dispatcher(func, PrivateMessageDispatcher)
+            context.bot._em.events.message_full_match(content).register(box)
+            dispatcher.register(context.bot, box)
+            # parent = dispatcher._message_event
+            # event = parent.full_match_events.get(content) or StrEvent(f"qq_message_full_match_{content!r}", parent)
+            # event.register(box)
+            # parent.full_match_events.__setitem__(content, event)
             return func
         return inner
     
     def regex(self, content: str):
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, PrivateMessageDispatcher)
-            parent = dispatcher._message_event
-            event = StrEvent(f"qq_message_regex_{content!r}", parent)
+            context, box, dispatcher = _deco_init_dispatcher(func, PrivateMessageDispatcher)
+            event = StrEvent(f"message_regex_{content!r}")
             event.register(box)
-            parent.regex_events.append((re.compile(content), event))
+            context.bot._em.events.message_regex.append((re.compile(content), event))
+            dispatcher.register(context.bot, box)
             return func
         return inner
 
     def filter_by(self, filter: Callable[[ChannelMessage], bool]):
         def inner(func: Callable[[], str]):
-            _, box, dispatcher = _deco_init_dispatcher(func, PrivateMessageDispatcher)
-            parent = dispatcher._message_event
-            event = StrEvent(f"qq_message_filter_by_{filter!r}", parent)
+            context, box, dispatcher = _deco_init_dispatcher(func, PrivateMessageDispatcher)
+            event = StrEvent(f"message_filter_by_{filter!r}")
             event.register(box)
-            parent.filter_events.append((filter, event))
+            context.bot._em.events.message_filter_by.append((filter, event))
+            dispatcher.register(context.bot, box)
             return func
         return inner
 
@@ -151,7 +162,8 @@ class OnEventPayload:
 
     def __call__(self, func: Callable[[], str]):
         context, box = _deco_init(func)
-        context.bot._em._root_event.payload_event.event_payload_event.register(box)
+        # context.bot._em._root_event.payload_event.event_payload_event.register(box)
+        context.bot._em.events.payload_of(EventPayload).register(box)
         return func
 
     def of(self, type: EventType):
@@ -161,11 +173,12 @@ class OnEventPayload:
         def inner(func: Callable[[], Emoji]):
             context, box, dispatcher = _deco_init_dispatcher(func, dispatcher_type)
             dispatcher: Dispatcher
-            parent = context.bot._em._root_event.payload_event.event_payload_event
+            # parent = context.bot._em._root_event.payload_event.event_payload_event
             payload_type = dispatcher._payload_type
-            event = parent.of(payload_type) or Event[[], Emoji](f"event_payload_{payload_type!r}", parent)
-            event.register(box)
-            parent.event_events.__setitem__(payload_type, event)
+            context.bot._em.events.payload_of(payload_type).register(box)
+            # event = parent.of(payload_type) or EmojiEvent(f"event_payload_{payload_type!r}", parent)
+            # event.register(box)
+            # parent.event_events.__setitem__(payload_type, event)
             return func
         
         return inner

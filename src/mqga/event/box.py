@@ -10,6 +10,7 @@ Params = ParamSpec("Params")
 # Filter = Callable[P, bool]
 
 class Box(Generic[Params, ReturnT]):
+    """ 容纳回调的盒子 """
 
     def __init__(self, func: Callable[Params, ReturnT]):
         if isinstance(func, Box):

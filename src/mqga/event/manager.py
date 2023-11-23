@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 from mqga.log import log
 from mqga.event.dispatcher import Dispatcher
 from mqga.event.tree import RootEvent
+from mqga.event.space import Space
 from mqga.q.payload import EventPayload
 from mqga.q.constant import Intents
 
@@ -22,15 +23,18 @@ class Manager:
     def __init__(self, bot: Bot):
         self.bot = bot
         self._dispatchers: dict[EventType, Dispatcher] = {}
-        self._root_event = RootEvent()
+        # self._root_event = RootEvent()
+        self.events: Space = Space()
+        self._default_dispatcher = Dispatcher(self)
 
     async def dispatch(self, payload: EventPayload):
         if dispatcher := self._dispatchers.get(payload.type):
             await dispatcher.dispatch(self.bot, payload)
             log.debug(f"{payload.type} 事件分发成功")
             return
-        self.bot._context.payload = payload
-        await self._root_event.payload_event.event_payload_event.emit()  # 没找到 dispatcher 也向上传播
+        # self.bot._context.payload = payload
+        # await self._root_event.payload_event.event_payload_event.emit()  # 没找到 dispatcher 也向上传播
+        await self._default_dispatcher.dispatch(self.bot, payload)  # 任意 EventPayload
         log.warning(f"未能分发 {payload.type} 事件！")
 
     def ensure(self, cls: type[DispatcherType]) -> DispatcherType:
@@ -41,4 +45,5 @@ class Manager:
 
     @property
     def intents(self) -> Intents:
+        """ 当前创建的所有 dispatcher 对应事件的意向之和 """
         return reduce(operator.or_, (dispatcher._intent for dispatcher in self._dispatchers.values()), Intents.DEFAULT) 

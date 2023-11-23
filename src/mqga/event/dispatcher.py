@@ -23,6 +23,7 @@ MessageEventPayload = ChannelAtMessageEventPayload | GroupAtMessageEventPayload 
 
 T = TypeVar("T")
 EventPayloadT = TypeVar("EventPayloadT", bound=EventPayload)
+MessageEventPayloadT = TypeVar("MessageEventPayloadT", bound=MessageEventPayload)
 
 class DispatcherMeta(type):
 
@@ -59,7 +60,8 @@ class Dispatcher(Generic[EventPayloadT], metaclass=DispatcherMeta):
 
     @classmethod
     def _event_payload_event(cls, bot: Bot):
-        return bot._em._root_event.payload_event.event_payload_event.of(cls._payload_type)
+        return bot._em.events.payload_of(cls._payload_type)
+        # return bot._em._root_event.payload_event.event_payload_event.of(cls._payload_type)
 
     def __init__(self, manager: Manager):
         pass
@@ -101,21 +103,21 @@ class Dispatcher(Generic[EventPayloadT], metaclass=DispatcherMeta):
             event.register(box)
 
 # TODO 改进写法
-class MessageDispatcher(Dispatcher):
+class MessageDispatcher(Dispatcher[MessageEventPayloadT]):
 
     @staticmethod
     def flatten(iter_iters: Iterable[Iterable[T]]) -> Generator[T, None, None]:
         return (item for it in iter_iters if it for item in it if item is not None)
     
-    def __init__(self, manager: Manager):
-        self._message_event = manager._root_event.qq_event.message_event
+    # def __init__(self, manager: Manager):
+    #     self._message_event = manager._root_event.qq_event.message_event
 
-    async def _pre_dispatch(self, bot, payload: MessageEventPayload):
+    async def _pre_dispatch(self, bot, payload):
         await super()._pre_dispatch(bot, payload)
         context = bot._context
         context.message = payload.data
 
-    async def emit(self, bot, payload: MessageEventPayload) -> Iterable[str]:
+    async def emit(self, bot, payload) -> Iterable[str]:
         message = payload.data
         return self.flatten(await asyncio.gather(
             self.full_match_emit(bot, message),
@@ -126,32 +128,35 @@ class MessageDispatcher(Dispatcher):
         ))
         
     async def full_match_emit(self, bot: Bot, message: Message):
-        events = self._message_event._full_match_events
+        # events = self._message_event._full_match_events
+        events = bot._em.events._message_full_match_dict
         if events and (event := events.get(message.content)):
             return await event.emit()
 
     async def regex_emit(self, bot: Bot, message: Message):
-        events = self._message_event._regex_events
+        # events = self._message_event._regex_events
+        events = bot._em.events.message_regex
         if events:
-            return self.flatten(await asyncio.gather(
-                *(event.emit() for pattern, event in events if pattern.search(message.content))
-            ))
+            coros = (event.emit() for pattern, event in events if pattern.search(message.content))
+            return self.flatten(await asyncio.gather(*coros))
 
     async def filter_emit(self, bot: Bot, message: Message):
-        events = self._message_event._filter_events
+        # events = self._message_event._filter_events
+        events = bot._em.events.message_filter_by
         if events:
-            return self.flatten(await asyncio.gather(
-                *(event.emit() for is_accept, event in events if is_accept(message))
-            ))
+            coros = (event.emit() for is_accept, event in events if is_accept(message))
+            return self.flatten(await asyncio.gather(*coros))
 
     async def fallback_emit(self, bot: Bot, message: Message):
-        event = self._message_event
-        if not (event._full_match_events and event._regex_events and event._filter_events):
-            return await event.emit()
+        # event = self._message_event
+        event = bot._em.events.message
+        # if not (event._full_match_events and event._regex_events and event._filter_events):
+        return await event.emit()
 
     def register(self, bot, box):
         super().register(bot, box)
-        self._message_event.register(box)
+        # self._message_event.register(box)
+        bot._em.events.message.register(box)
 
 class ChannelAtMessageDispatcher(MessageDispatcher[ChannelAtMessageEventPayload]):
 
