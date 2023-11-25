@@ -1,130 +1,203 @@
 from __future__ import annotations
 
 import asyncio
-
 from typing import TYPE_CHECKING, TypeVar, Generic, get_origin, get_args, Iterable, Generator
+import inspect
 
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.event.manager import Manager
-    from mqga.event.box import Box
-    from mqga.event.event import Event
-    from mqga.q.constant import EventType
     from mqga.q.message import Message
 
 from mqga.log import log
+from mqga.event.event import Box, Params, ReturnT, Event
+# from mqga.event.event import PlainReturns
+from mqga.q.constant import EventType, OpCode
 from mqga.q.constant import Intents, EventType2Intent
 from mqga.q.message import Emoji
-from mqga.q.payload import EventPayload, ChannelAtMessageEventPayload
+from mqga.q.payload import Payload, EventPayload, ChannelAtMessageEventPayload
 from mqga.q.payload import ChannelMessageReactionAddEventPayload, ChannelMessageReactionRemoveEventPayload
 from mqga.q.payload import GroupAtMessageEventPayload, PrivateMessageEventPayload
 
 MessageEventPayload = ChannelAtMessageEventPayload | GroupAtMessageEventPayload | PrivateMessageEventPayload
 
 T = TypeVar("T")
+PayloadT = TypeVar("PayloadT", bound=Payload)
 EventPayloadT = TypeVar("EventPayloadT", bound=EventPayload)
 MessageEventPayloadT = TypeVar("MessageEventPayloadT", bound=MessageEventPayload)
 
-class DispatcherMeta(type):
+class Dispatcher(Generic[T, Params, ReturnT]):
+
+    def __init__(self, manager: Manager):
+        pass
+
+    async def is_accept(self, bot: Bot, target: T) -> bool:
+        # TODO
+        raise NotImplementedError
+
+    async def _pre_dispatch(self, bot: Bot, target: T):
+        pass
+
+    async def emit(self, bot: Bot, target: T, *args: Params.args, **kw: Params.kwargs) -> Iterable[ReturnT]:
+        return []
+
+    async def _handle_emit(self, result: ReturnT, bot: Bot, target: T):
+        if inspect.isawaitable(result):
+            bot._em.background_task(result)  # 回调返回的可等待对象，送去后台执行
+
+    async def _post_dispatch(self, bot: Bot, target: T):
+        pass
+
+    async def dispatch(self, bot: Bot, target: T, *args: Params.args, **kw: Params.kwargs):
+        await self._pre_dispatch(bot, target)
+
+        for result in await self.emit(bot, target, *args, **kw):
+            await self._handle_emit(result, bot, target)
+        
+        await self._post_dispatch(bot, target)
+        
+    def register(self, box: Box[Params, ReturnT], bot: Bot, target: T):
+        pass
+
+class EventDispatcher(Dispatcher[Event[Params, ReturnT], Params, ReturnT]):
+
+    # async def is_accept(self, bot, target) -> bool:
+    #     # TODO
+    #     raise NotImplementedError
+
+    # async def _pre_dispatch(self, bot, target):
+    #     pass
+
+    # async def _handle_emit(self, result, bot, target):
+    #     pass
+
+    # async def _post_dispatch(self, bot, target):
+    #     pass
+
+    async def emit(self, bot, target, *args, **kw):
+        return await target.emit(*args, **kw)
+    
+    # async def dispatch(self, bot, target, *args, **kw):
+    #     await self._pre_dispatch(bot, target)
+
+    #     for result in await self.emit(bot, target, *args, **kw):
+    #         await self._handle_emit(result, bot, target)
+        
+    #     await self._post_dispatch(bot, target)
+        
+    def register(self, box, bot, target):
+        return target.register(box)
+
+class PayloadDispatcherMeta(type):
 
     def __new__(meta, name: str, bases: tuple[type, ...], attrs: dict):
         if original_bases := attrs.get("__orig_bases__"):
-            original_bases: tuple[type, ...]
+            # original_bases: tuple[type, ...]
             _payload_type = meta._payload_type_in_bases(original_bases)
             if _payload_type:
-                # 自动填充 Dispatcher 子类的 _payload_type、_event_type、_intent
+                # 自动填充 PayloadDispatcher 子类的 _payload_type、_event_type
+                # 以及 EventPayloadDispatcher 子类的 _intent
                 attrs["_payload_type"] = _payload_type
-                event_type: EventType = _payload_type.model_fields["type"].default
-                attrs["_event_type"] = event_type
-                attrs["_intent"] = EventType2Intent[event_type].intent
+                fields = _payload_type.model_fields
+                if _payload_type is Payload or _payload_type is EventPayload:
+                    _type = None
+                elif issubclass(_payload_type, EventPayload):
+                    _type = fields["type"].default  # EventType
+                    attrs["_intent"] = EventType2Intent[_type].intent
+                else:
+                    _type = fields["op_code"].default
+                attrs["_type"] = _type  # OpCode
         return super().__new__(meta, name, bases, attrs)
     
     @classmethod
     def _payload_type_in_bases(meta, bases: tuple[type, ...]):
-        """ 在 bases 中寻找 Dispatcher[XXXEventPayload] 中的 XXXEventPayload """
+        """ 在 bases 中寻找 PayloadDispatcher[XXXPayload] 中的 XXXPayload """
         for base in bases:
             origin = get_origin(base)
             if not (isinstance(origin, type) and origin is not Generic and issubclass(origin, Generic)):
                 continue
             args = get_args(base)
-            if args and isinstance(arg := args[0], type) and issubclass(arg, EventPayload):
+            if args and isinstance(arg := args[0], type) and issubclass(arg, Payload):
                 return arg
 
-class Dispatcher(Generic[EventPayloadT], metaclass=DispatcherMeta):
-    
-    _payload_type = EventPayload
-    _event_type: EventType = None
-    _intent: Intents = Intents.NONE
-
-    _subs: dict[type[EventType], Dispatcher] = {}
-
-    @classmethod
-    def _event_payload_event(cls, bot: Bot):
-        return bot._em.events.payload_of(cls._payload_type)
-        # return bot._em._root_event.payload_event.event_payload_event.of(cls._payload_type)
-
-    def __init__(self, manager: Manager):
-        pass
-
-    def __init_subclass__(subcls):
-        if subcls._event_type is Dispatcher._event_type:
-            return
-        if old_sub := subcls._subs.get(subcls._event_type):
-            log.warning(f"{subcls!r} 覆盖了 {old_sub!r}")
-        subcls._subs[subcls._event_type] = subcls
-
-    async def is_accept(self, bot: Bot, payload: EventPayloadT, event: Event) -> bool:
-        # TODO
-        raise NotImplementedError
-
-    async def _pre_dispatch(self, bot: Bot, payload: EventPayloadT):
-        bot._context.payload = payload
-
-    async def _handle_emit(self, result: T, bot: Bot, payload: EventPayloadT):
-        pass
-
-    async def _post_dispatch(self, bot: Bot, payload: EventPayloadT):
-        pass
-
-    async def dispatch(self, bot: Bot, payload: EventPayloadT):
-        await self._pre_dispatch(bot, payload)
-
-        for result in await self.emit(bot, payload):
-            await self._handle_emit(result, bot, payload)
-        
-        await self._post_dispatch(bot, payload)
-        
-    async def emit(self, bot: Bot, payload: EventPayloadT) -> Iterable[T]:
-        if event := self._event_payload_event(bot):
-            return await event.emit()
-        
-    def register(self, bot: Bot, box: Box):
-        if event := self._event_payload_event(bot):
-            event.register(box)
-
-# TODO 改进写法
-class MessageDispatcher(Dispatcher[MessageEventPayloadT]):
+# 所有 Payload 事件暂时都不接收参数
+class PayloadDispatcher(Dispatcher[PayloadT, [], ReturnT], metaclass=PayloadDispatcherMeta):
+    _payload_type = Payload
+    _type: OpCode | None = None
 
     @staticmethod
-    def flatten(iter_iters: Iterable[Iterable[T]]) -> Generator[T, None, None]:
+    def flatten(iter_iters: Iterable[Iterable[ReturnT]]) -> Generator[ReturnT, None, None]:
         return (item for it in iter_iters if it for item in it if item is not None)
+
+    @classmethod
+    def _payload_event(cls, bot: Bot):
+        return bot._em.events.payload_of(cls._payload_type)  # TODO
+        # return bot._em._root_event.payload_event.event_payload_event.of(cls._payload_type)
+
+    # async def is_accept(self, bot: Bot, target: PayloadT) -> bool:
+    #     return await super().is_accept(bot, target)
+    
+    async def _pre_dispatch(self, bot: Bot, target: PayloadT):
+        bot._context.payload = target
+
+    async def emit(self, bot: Bot, target: PayloadT) -> Iterable[ReturnT]:
+        if event := self._payload_event(bot):
+            return await event.emit()
+        return []
+
+    # async def _handle_emit(self, result, bot, target):
+    #     pass
+
+    # async def _post_dispatch(self, bot, target):
+    #     pass
+
+    # async def dispatch(self, bot, target):
+    #     await self._pre_dispatch(bot, target)
+
+    #     for result in await self.emit(bot, target):
+    #         await self._handle_emit(result, bot, target)
+        
+    #     await self._post_dispatch(bot, target)
+
+    async def register(self, box: Box[[], ReturnT], bot: Bot, target: PayloadT):
+        if event := self._payload_event(bot):
+            event.register(box)
+
+    
+class EventPayloadDispatcher(PayloadDispatcher[EventPayloadT, ReturnT]):
+    
+    _payload_type = EventPayload
+    _type: EventType | None = None
+    _intent: Intents = Intents.NONE
+
+    _subs: dict[EventType, type[EventPayloadDispatcher]] = {}
+
+    def __init_subclass__(subcls, **kw):
+        super().__init_subclass__(**kw)  # 执行 Generic 的 __init_subclass__
+        if not subcls._type:
+            return
+        if old_sub := subcls._subs.get(subcls._type):
+            log.warning(f"{subcls!r} 覆盖了 {old_sub!r}")
+        subcls._subs[subcls._type] = subcls
+
+# TODO 改进写法
+class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     
     # def __init__(self, manager: Manager):
     #     self._message_event = manager._root_event.qq_event.message_event
 
-    async def _pre_dispatch(self, bot, payload):
-        await super()._pre_dispatch(bot, payload)
-        context = bot._context
-        context.message = payload.data
-
-    async def emit(self, bot, payload) -> Iterable[str]:
-        message = payload.data
+    async def _pre_dispatch(self, bot: Bot, target: MessageEventPayloadT):
+        await super()._pre_dispatch(bot, target)
+        bot._context.message = target.data
+    
+    async def emit(self, bot, target) -> Iterable[str]:
+        message = target.data
         return self.flatten(await asyncio.gather(
             self.full_match_emit(bot, message),
             self.regex_emit(bot, message),
             self.filter_emit(bot, message),
-            self.fallback_emit(bot, message),
-            super().emit(bot, payload)
+            self.message_emit(bot, message),
+            super().emit(bot, target)
         ))
         
     async def full_match_emit(self, bot: Bot, message: Message):
@@ -144,21 +217,34 @@ class MessageDispatcher(Dispatcher[MessageEventPayloadT]):
         # events = self._message_event._filter_events
         events = bot._em.events.message_filter_by
         if events:
-            coros = (event.emit() for is_accept, event in events if is_accept(message))
+            coros = (event.emit() for is_accept, event in events if is_accept())
             return self.flatten(await asyncio.gather(*coros))
 
-    async def fallback_emit(self, bot: Bot, message: Message):
+    async def message_emit(self, bot: Bot, message: Message):
         # event = self._message_event
         event = bot._em.events.message
         # if not (event._full_match_events and event._regex_events and event._filter_events):
         return await event.emit()
 
-    def register(self, bot, box):
-        super().register(bot, box)
-        # self._message_event.register(box)
-        bot._em.events.message.register(box)
+    async def _handle_emit(self, result, bot: Bot, target: MessageEventPayloadT):
+        if isinstance(result, str):
+            return await self._reply_str(result, bot, target)
+        return await super()._handle_emit(result, bot, target)
 
-class ChannelAtMessageDispatcher(MessageDispatcher[ChannelAtMessageEventPayload]):
+    async def _reply_str(self, content: str, bot: Bot, payload: MessageEventPayloadT):
+        return {}
+
+    # def register(self, box, bot: Bot, target: MessageEventPayloadT):
+    #     super().register(box, bot, target)
+
+    # def register(self, box, bot, target):
+    #     super().register(box, bot, target)
+    #     # self._message_event.register(box)
+    #     bot._em.events.message.register(box)
+
+class ChannelAtMessageDispatcher(
+    MessageDispatcher[ChannelAtMessageEventPayload]
+):
 
     # @staticmethod
     # def flatten(iter_iters: Iterable[Iterable[T]]) -> Generator[T, None, None]:
@@ -167,8 +253,11 @@ class ChannelAtMessageDispatcher(MessageDispatcher[ChannelAtMessageEventPayload]
     # def __init__(self, manager: Manager):
     #     self._message_event = manager._root_event.qq_event.message_event
 
-    async def _handle_emit(self, result: str, bot, payload):
-        return await bot._api.channel_reply(result, payload)
+    # async def _handle_emit(self, result, bot, target):
+    #     return await bot._api.channel_reply(result, target)
+
+    async def _reply_str(self, content, bot, payload):
+        return await bot._api.channel_reply(content, payload)
 
     # async def dispatch(self, bot, payload):
     #     await super().dispatch(bot, payload)
@@ -181,27 +270,35 @@ class ChannelAtMessageDispatcher(MessageDispatcher[ChannelAtMessageEventPayload]
     #     return True
 
 # TODO 改进写法
-class ChannelMessageReactionAddDispatcher(Dispatcher[ChannelMessageReactionAddEventPayload]):
-
-    async def _handle_emit(self, result, bot, payload):
-        if isinstance(result, Emoji):
-            return await bot._api.channel_reaction(payload.data, result)
+class GroupAtMessageDispatcher(
+    MessageDispatcher[GroupAtMessageEventPayload]
+):
+    async def _reply_str(self, content, bot, payload):
+        return await bot._api.group_reply(content, payload)
 
 # TODO 改进写法
-class ChannelMessageReactionRemoveDispatcher(Dispatcher[ChannelMessageReactionRemoveEventPayload]):
+class PrivateMessageDispatcher(
+    MessageDispatcher[PrivateMessageEventPayload]
+):
+    async def _reply_str(self, content, bot, payload):
+        return await bot._api.private_reply(content, payload)
+
+# TODO 改进写法
+class ChannelMessageReactionAddDispatcher(
+    EventPayloadDispatcher[ChannelMessageReactionAddEventPayload, Emoji]
+):
+
+    async def _handle_emit(self, result, bot, target):
+        if isinstance(result, Emoji):
+            return await bot._api.channel_reaction(target.data, result)
+        return await super()._handle_emit(result, bot, target)
+
+# TODO 改进写法
+class ChannelMessageReactionRemoveDispatcher(
+    EventPayloadDispatcher[ChannelMessageReactionRemoveEventPayload, Emoji]
+):
     
-    async def _handle_emit(self, result, bot, payload):
+    async def _handle_emit(self, result, bot, target):
         if isinstance(result, Emoji):
-            return await bot._api.channel_reaction_delete(payload.data, result)
-
-# TODO 改进写法
-class GroupAtMessageDispatcher(MessageDispatcher[GroupAtMessageEventPayload]):
-
-    async def _handle_emit(self, result: str, bot, payload):
-        return await bot._api.group_reply(result, payload)
-
-# TODO 改进写法
-class PrivateMessageDispatcher(MessageDispatcher[PrivateMessageEventPayload]):
-
-    async def _handle_emit(self, result: str, bot, payload):
-        return await bot._api.private_reply(result, payload)
+            return await bot._api.channel_reaction_delete(target.data, result)
+        return await super()._handle_emit(result, bot, target)
