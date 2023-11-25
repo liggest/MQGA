@@ -11,7 +11,7 @@ from mqga.event.on import on_group_message, on_private_message
 def log_message():
     log.debug(f"收到消息：{ctx.message!r}")
 
-@on_msg.filter_by(lambda message: message.content.lower().endswith("hello"))
+@on_msg.filter_by(lambda: ctx.message.content.lower().endswith("hello"))
 def hello():
     return f"全体目光向我看齐，我宣布个事儿！\nMQGA！[{ctx.message.id}]"
 

@@ -6,9 +6,9 @@ from pathlib import Path
 
 from mqga.log import log
 
-def load(root = Path("./plugin")) -> dict[Path, ModuleType]:
-    if not (root / "__init__.py").exists():
-        raise ValueError(f"请在 {root!r} 中创建 __init__.py，使其变成一个 Python 包")
+def load(root = Path("./mqga_plugin/mqga_plugin")) -> dict[Path, ModuleType]:
+    # if not (root / "__init__.py").exists():
+    #     raise ValueError(f"请在 {root!r} 中创建 __init__.py，使其变成一个 Python 包")
     parent = root.parent
     parent_abs = parent.as_posix()
     sys.path.insert(0, parent_abs)

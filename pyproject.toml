@@ -34,3 +34,8 @@ bot = {cmd = "python bot.py"}
 ignore = ["E501", "E402"]
 # E501: Line too long
 # E402: Module level import not at top of file
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "-e mqga_plugin @ file:///${PROJECT_ROOT}/mqga_plugin",
+]
