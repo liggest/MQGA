@@ -76,9 +76,9 @@ class WS:
                 
     def _task_done(self, task: asyncio.Task):
         if task.cancelled():
-            log.warning(f"WS 任务 {task} 取消")
+            log.warning(f"WS 任务 {task!r} 被取消")
         elif e := task.exception():
-            log.exception(f"WS 任务 {task} 失败", exc_info=e)
+            log.exception(f"WS 任务 {task!r} 失败", exc_info=e)
 
     def _start_connect(self):
         self._connect_task = asyncio.create_task(self.connect())

@@ -47,7 +47,7 @@ class Event(Generic[Params, ReturnT], metaclass=ABCMeta):
         return [r async for r in self._emit_gen(*args, **kw)]
     
     def _error(self, e: Exception):
-        log.error(f"Emit error in {self!r}", exc_info=e)
+        log.exception(f"Emit error in {self!r}", exc_info=e)
 
 class MultiEvent(Event[Params, ReturnT]):
     """ 触发一组回调的事件 """
@@ -208,7 +208,7 @@ class EventMap(Generic[KeyT, Params, ReturnT], Event[Params, ReturnT]):
 
 from typing import Awaitable
 
-PlainReturns = Awaitable | None
+PlainReturns = Awaitable[None] | None
 
 PlainEvent = MultiEvent[[], PlainReturns]
 StrEvent = MultiEvent[[], str | PlainReturns]

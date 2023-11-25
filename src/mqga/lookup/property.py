@@ -10,10 +10,10 @@ class VarProperty(Generic[T]):
         self.var = var
         self.default = default
 
-    def __get__(self, obj, cls) -> T | None:
+    def __get__(self, obj, cls) -> T:
         return self.var.get()
 
-    def __set__(self, obj, val: T | None):
+    def __set__(self, obj, val: T):
         return self.var.set(val)
     
     def __delete__(self, obj):

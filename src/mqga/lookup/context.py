@@ -15,7 +15,7 @@ class BotContext:
         _vars._last_bot.set(bot)
 
     message = VarProperty(_vars._message)
-    payload = VarProperty(_vars._event_payload)
+    payload = VarProperty(_vars._payload)
 
 Context = BotContext
 
