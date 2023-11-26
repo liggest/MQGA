@@ -60,7 +60,7 @@ class OnChannelMessage:
             return func
         return inner
 
-    def filter_by(self, filter: Callable[[ChannelMessage], bool]):
+    def filter_by(self, filter: Callable[[], bool]):
         def inner(func: Callable[[], str]):
             context, box, dispatcher = _deco_init_dispatcher(func, ChannelAtMessageDispatcher)
             event = StrEvent(f"message_filter_by_{filter!r}")
@@ -99,7 +99,7 @@ class OnGroupMessage:
             return func
         return inner
 
-    def filter_by(self, filter: Callable[[ChannelMessage], bool]):
+    def filter_by(self, filter: Callable[[], bool]):
         def inner(func: Callable[[], str]):
             context, box, dispatcher = _deco_init_dispatcher(func, GroupAtMessageDispatcher)
             event = StrEvent(f"message_filter_by_{filter!r}")
@@ -138,7 +138,7 @@ class OnPrivateMessage:
             return func
         return inner
 
-    def filter_by(self, filter: Callable[[ChannelMessage], bool]):
+    def filter_by(self, filter: Callable[[], bool]):
         def inner(func: Callable[[], str]):
             context, box, dispatcher = _deco_init_dispatcher(func, PrivateMessageDispatcher)
             event = StrEvent(f"message_filter_by_{filter!r}")
