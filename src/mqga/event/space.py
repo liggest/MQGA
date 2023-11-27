@@ -126,28 +126,44 @@ class Space:
     bot_stop = EventProperty(PlainEvent)
     """ Bot 停机 """
 
-    message = EventProperty(StrEvent)
-    """ 任意消息 """
-    
     @cached_property
-    def _message_full_match_dict(self) -> dict[str, StrEvent]:
-        return {}
-    
-    def message_full_match(self, content: str):
-        """ 消息完全匹配 """
-        if not (event := self._message_full_match_dict.get(content)):
-            event = self._message_full_match_dict[content] = StrEvent(f"message_full_match_{content!r}")
-        return event
-    
+    def all_message(self):
+        return MessageSpace("all")
+
     @cached_property
-    def message_regex(self) -> deque[tuple[re.Pattern, StrEvent]]:
-        """ 消息与正则匹配 """
-        return deque()
-    
+    def channel_message(self):
+        return MessageSpace("channel")
+
     @cached_property
-    def message_filter_by(self) -> deque[tuple[Callable[[], bool], StrEvent]]:
-        """ 消息与过滤函数匹配 """
-        return deque()
+    def private_message(self):
+        return MessageSpace("private")
+
+    @cached_property
+    def group_message(self):
+        return MessageSpace("group")
+
+    # message = EventProperty(StrEvent)
+    # """ 任意消息 """
+    
+    # @cached_property
+    # def _message_full_match_dict(self) -> dict[str, StrEvent]:
+    #     return {}
+    
+    # def message_full_match(self, content: str):
+    #     """ 消息完全匹配 """
+    #     if not (event := self._message_full_match_dict.get(content)):
+    #         event = self._message_full_match_dict[content] = StrEvent(f"message_full_match_{content!r}")
+    #     return event
+    
+    # @cached_property
+    # def message_regex(self) -> deque[tuple[re.Pattern, StrEvent]]:
+    #     """ 消息与正则匹配 """
+    #     return deque()
+    
+    # @cached_property
+    # def message_filter_by(self) -> deque[tuple[Callable[[], bool], StrEvent]]:
+    #     """ 消息与过滤函数匹配 """
+    #     return deque()
 
 
 class PluginSpace:
@@ -164,3 +180,34 @@ class PluginSpace:
     def plugin_unloading(self):
         """ 特定插件卸载 """
         return PlainEvent(f"plugin_unloading_{self.name}")
+
+class MessageSpace:
+
+    def __init__(self, source: str):
+        """ source 渠道名，如 all、group、channel """
+        self.source = source
+    
+    @EventProperty[StrEvent]
+    def any(self):
+        """ 任意消息 """
+        return StrEvent(f"{self.source}_message")
+    
+    @cached_property
+    def _full_match_dict(self) -> dict[str, StrEvent]:
+        return {}
+    
+    def full_match(self, content: str):
+        """ 消息完全匹配 """
+        if not (event := self._full_match_dict.get(content)):
+            event = self._full_match_dict[content] = StrEvent(f"{self.source}_message_full_match_{content!r}")
+        return event
+    
+    @cached_property
+    def regex(self) -> deque[tuple[re.Pattern, StrEvent]]:
+        """ 消息与正则匹配 """
+        return deque()
+    
+    @cached_property
+    def filter_by(self) -> deque[tuple[Callable[[], bool], StrEvent]]:
+        """ 消息与过滤函数匹配 """
+        return deque()

@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, TypeVar, Generic, get_origin, get_args, Iterable, Generator
+from typing import TYPE_CHECKING, TypeVar, Generic, get_origin, get_args, Iterable, Generator, Callable
 import inspect
+import re
 
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.event.manager import Manager
+    from mqga.event.space import MessageSpace
     from mqga.q.message import Message
 
 from mqga.log import log
-from mqga.event.event import Box, Params, ReturnT, Event
+from mqga.event.event import Box, Params, ReturnT, Event, StrEvent
 # from mqga.event.event import PlainReturns
 from mqga.q.constant import EventType, OpCode
 from mqga.q.constant import Intents, EventType2Intent
@@ -131,7 +133,7 @@ class PayloadDispatcher(Dispatcher[PayloadT, [], ReturnT], metaclass=PayloadDisp
 
     @classmethod
     def _payload_event(cls, bot: Bot):
-        return bot._em.events.payload_of(cls._payload_type)  # TODO
+        return bot._em.events._payload_dict.get(cls._payload_type)
         # return bot._em._root_event.payload_event.event_payload_event.of(cls._payload_type)
 
     # async def is_accept(self, bot: Bot, target: PayloadT) -> bool:
@@ -159,9 +161,10 @@ class PayloadDispatcher(Dispatcher[PayloadT, [], ReturnT], metaclass=PayloadDisp
         
     #     await self._post_dispatch(bot, target)
 
-    async def register(self, box: Box[[], ReturnT], bot: Bot, target: PayloadT):
-        if event := self._payload_event(bot):
-            event.register(box)
+    def register(self, box: Box[[], ReturnT], bot: Bot, target: PayloadT):
+        # if event := self._payload_event(bot):
+            # event.register(box)
+        bot._em.events.payload_of(self._payload_type).register(box)
 
     
 class EventPayloadDispatcher(PayloadDispatcher[EventPayloadT, ReturnT]):
@@ -186,43 +189,67 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     # def __init__(self, manager: Manager):
     #     self._message_event = manager._root_event.qq_event.message_event
 
+    @classmethod
+    def _message_space(cls, bot: Bot):
+        return bot._em.events.all_message
+
     async def _pre_dispatch(self, bot: Bot, target: MessageEventPayloadT):
         await super()._pre_dispatch(bot, target)
         bot._context.message = target.data
     
     async def emit(self, bot, target) -> Iterable[str]:
         message = target.data
-        return self.flatten(await asyncio.gather(
-            self.full_match_emit(bot, message),
-            self.regex_emit(bot, message),
-            self.filter_emit(bot, message),
-            self.message_emit(bot, message),
-            super().emit(bot, target)
-        ))
-        
-    async def full_match_emit(self, bot: Bot, message: Message):
+        self_space = self._message_space(bot)
+        all_space = MessageDispatcher._message_space(bot)
+        if self_space is all_space:
+            coros = (
+                self.full_match_emit(self_space, message),
+                self.regex_emit(self_space, message),
+                self.filter_emit(self_space, message),
+                self.message_emit(self_space, message),
+                super().emit(bot, target)
+            )
+        else:
+            coros = (
+                self.full_match_emit(self_space, message),
+                self.regex_emit(self_space, message),
+                self.filter_emit(self_space, message),
+                self.message_emit(self_space, message),
+                self.full_match_emit(all_space, message),
+                self.regex_emit(all_space, message),
+                self.filter_emit(all_space, message),
+                self.message_emit(all_space, message),
+                super().emit(bot, target)
+            )
+        return self.flatten(await asyncio.gather(*coros))
+    
+    async def full_match_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._full_match_events
-        events = bot._em.events._message_full_match_dict
+        # events = bot._em.events._message_full_match_dict
+        events = space._full_match_dict
         if events and (event := events.get(message.content)):
             return await event.emit()
 
-    async def regex_emit(self, bot: Bot, message: Message):
+    async def regex_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._regex_events
-        events = bot._em.events.message_regex
+        # events = bot._em.events.message_regex
+        events = space.regex
         if events:
             coros = (event.emit() for pattern, event in events if pattern.search(message.content))
             return self.flatten(await asyncio.gather(*coros))
 
-    async def filter_emit(self, bot: Bot, message: Message):
+    async def filter_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._filter_events
-        events = bot._em.events.message_filter_by
+        # events = bot._em.events.message_filter_by
+        events = space.filter_by
         if events:
             coros = (event.emit() for is_accept, event in events if is_accept())
             return self.flatten(await asyncio.gather(*coros))
 
-    async def message_emit(self, bot: Bot, message: Message):
+    async def message_emit(self, space: MessageSpace, message: Message):
         # event = self._message_event
-        event = bot._em.events.message
+        # event = bot._em.events.message
+        event = space.any
         # if not (event._full_match_events and event._regex_events and event._filter_events):
         return await event.emit()
 
@@ -241,10 +268,31 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     #     super().register(box, bot, target)
     #     # self._message_event.register(box)
     #     bot._em.events.message.register(box)
+    def register_message(self, box: Box, bot: Bot):
+        self._message_space(bot).any.register(box)
+
+    def register_full_match(self, box: Box, bot: Bot, content: str):
+        self._message_space(bot).full_match(content).register(box)
+
+    def register_regex(self, box: Box, bot: Bot, content: str):
+        space = self._message_space(bot)
+        event = StrEvent(f"{space.source}_message_regex_{content!r}")
+        event.register(box)
+        space.regex.append((re.compile(content), event))
+
+    def register_filter_by(self, box: Box, bot: Bot, filter: Callable[[], bool]):
+        space = self._message_space(bot)
+        event = StrEvent(f"{space.source}_message_filter_by_{filter!r}")
+        event.register(box)
+        space.filter_by.append((filter, event))
 
 class ChannelAtMessageDispatcher(
     MessageDispatcher[ChannelAtMessageEventPayload]
 ):
+
+    @classmethod
+    def _message_space(cls, bot):
+        return bot._em.events.channel_message
 
     # @staticmethod
     # def flatten(iter_iters: Iterable[Iterable[T]]) -> Generator[T, None, None]:
@@ -273,6 +321,10 @@ class ChannelAtMessageDispatcher(
 class GroupAtMessageDispatcher(
     MessageDispatcher[GroupAtMessageEventPayload]
 ):
+    @classmethod
+    def _message_space(cls, bot):
+        return bot._em.events.group_message
+
     async def _reply_str(self, content, bot, payload):
         return await bot._api.group_reply(content, payload)
 
@@ -280,6 +332,10 @@ class GroupAtMessageDispatcher(
 class PrivateMessageDispatcher(
     MessageDispatcher[PrivateMessageEventPayload]
 ):
+    @classmethod
+    def _message_space(cls, bot):
+        return bot._em.events.private_message
+
     async def _reply_str(self, content, bot, payload):
         return await bot._api.private_reply(content, payload)
 

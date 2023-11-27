@@ -11,13 +11,13 @@ if TYPE_CHECKING:
     from mqga.q.constant import EventType
 
 from mqga.log import log
-from mqga.event.dispatcher import EventPayloadDispatcher
+from mqga.event.dispatcher import EventPayloadDispatcher, MessageDispatcher
 # from mqga.event.tree import RootEvent
 from mqga.event.space import Space
 from mqga.q.payload import EventPayload
 from mqga.q.constant import Intents
 
-DispatcherType = TypeVar("DispatcherType", bound=EventPayloadDispatcher)
+EventDispatcherType = TypeVar("EventDispatcherType", bound=EventPayloadDispatcher)
 
 class Manager:
 
@@ -27,19 +27,21 @@ class Manager:
         # self._root_event = RootEvent()
         self.events: Space = Space()
         self._default_dispatcher = EventPayloadDispatcher(self)
+        self._all_message_dispatcher = MessageDispatcher(self)  # TODO 暂时用这个
         self._tasks = set()
 
     async def dispatch(self, payload: EventPayload):
         if dispatcher := self._dispatchers.get(payload.type):
             await dispatcher.dispatch(self.bot, payload)
             log.debug(f"{payload.type} 事件分发成功")
-            return
+        else:
+            log.warning(f"未能分发 {payload.type} 事件！")
         # self.bot._context.payload = payload
         # await self._root_event.payload_event.event_payload_event.emit()  # 没找到 dispatcher 也向上传播
-        await self._default_dispatcher.dispatch(self.bot, payload)  # 任意 EventPayload
-        log.warning(f"未能分发 {payload.type} 事件！")
+        await self._default_dispatcher.dispatch(self.bot, payload)  # EventPayload 事件 
+        # TODO: 其它 dispatcher 也要触发 EventPayload？
 
-    def ensure(self, cls: type[DispatcherType]) -> DispatcherType:
+    def ensure(self, cls: type[EventDispatcherType]) -> EventDispatcherType:
         if dispatcher := self._dispatchers.get(cls._type):
             return dispatcher
         self._dispatchers[cls._type] = dispatcher = cls(self)
