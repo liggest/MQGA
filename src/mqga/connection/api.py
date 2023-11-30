@@ -19,18 +19,19 @@ class APIError(Exception):
 
     def __init__(self, data: dict):
         self._data = data
-        if self.message:
-            super().__init__(self.code, self.message)
-        else:
-            super().__init__(self.code)
+        super().__init__(self._data)
+        # if message := self.message:
+        #     super().__init__(self.code, message)
+        # else:
+        #     super().__init__(self.code)
 
     @property
     def code(self):
-        return self._data["code"]
+        return self._data.get("code") or self._data["ret"]
 
     @property
     def message(self):
-        return self._data.get("message")
+        return self._data.get("message") or self._data.get("msg")  # 什么玩意
 
 
 class API:
@@ -98,7 +99,7 @@ class API:
         except httpx.HTTPStatusError as e:
             http_error = e
         data: dict = response.json()
-        if (data and "code" in data):
+        if (data and ("code" in data or "ret" in data)):
             if http_error:
                 raise APIError(data) from http_error
             else:
