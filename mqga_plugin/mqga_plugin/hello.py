@@ -13,9 +13,11 @@ def log_message():
 
 with channel_only:
 
-    @on_message.filter_by(lambda: ctx.message.content.lower().endswith("hello"))
-    def hello():
-        return f"全体目光向我看齐，我宣布个事儿！\nMQGA！[{ctx.message.id}]"
+    with group_only:
+
+        @on_message.filter_by(lambda: ctx.message.content.lower().endswith("hello"))
+        def hello():
+            return f"全体目光向我看齐，我宣布个事儿！\nMQGA！[{ctx.message.id.replace('.', '[.]')}]"
 
     @on_message.regex(r"bye")
     def bye():
