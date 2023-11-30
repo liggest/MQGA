@@ -27,7 +27,7 @@ class Manager:
         # self._root_event = RootEvent()
         self.events: Space = Space()
         self._default_dispatcher = EventPayloadDispatcher(self)
-        self._all_message_dispatcher = MessageDispatcher(self)  # TODO 暂时用这个
+        self._all_message_dispatcher = MessageDispatcher(self)
         self._tasks = set()
 
     async def dispatch(self, payload: EventPayload):

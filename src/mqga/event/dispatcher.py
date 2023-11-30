@@ -143,6 +143,7 @@ class PayloadDispatcher(Dispatcher[PayloadT, [], ReturnT], metaclass=PayloadDisp
         bot._context.payload = target
 
     async def emit(self, bot: Bot, target: PayloadT) -> Iterable[ReturnT]:
+        """ 如果有注册对应的 PayloadEvent，触发之 """
         if event := self._payload_event(bot):
             return await event.emit()
         return []
@@ -197,31 +198,23 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
         await super()._pre_dispatch(bot, target)
         bot._context.message = target.data
     
-    async def emit(self, bot, target) -> Iterable[str]:
-        message = target.data
+    def _message_emit_coros(self, bot: Bot, message: Message):
+        """ 触发各种消息事件 """
         self_space = self._message_space(bot)
-        all_space = MessageDispatcher._message_space(bot)
-        if self_space is all_space:
-            coros = (
-                self.full_match_emit(self_space, message),
-                self.regex_emit(self_space, message),
-                self.filter_emit(self_space, message),
-                self.message_emit(self_space, message),
-                super().emit(bot, target)
-            )
-        else:
-            coros = (
-                self.full_match_emit(self_space, message),
-                self.regex_emit(self_space, message),
-                self.filter_emit(self_space, message),
-                self.message_emit(self_space, message),
-                self.full_match_emit(all_space, message),
-                self.regex_emit(all_space, message),
-                self.filter_emit(all_space, message),
-                self.message_emit(all_space, message),
-                super().emit(bot, target)
-            )
-        return self.flatten(await asyncio.gather(*coros))
+        yield self.full_match_emit(self_space, message)
+        yield self.regex_emit(self_space, message)
+        yield self.filter_emit(self_space, message)
+        yield self.message_emit(self_space, message)
+
+    def _emit_coros(self, bot: Bot, target: MessageEventPayloadT):
+        message = target.data
+        yield from self._message_emit_coros(bot, message)  # 触发当前 dispatcher 的各种消息事件
+        if self is not (all_dispatcher := bot._em._all_message_dispatcher):  # 当前 dispatcher 不是 all_message
+            yield from all_dispatcher._message_emit_coros(bot, message)  # 触发当前 all_message 的各种消息事件
+        yield super().emit(bot, target)
+
+    async def emit(self, bot, target) -> Iterable[str]:
+        return self.flatten(await asyncio.gather(*self._emit_coros(bot, target)))
     
     async def full_match_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._full_match_events
@@ -259,7 +252,10 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
         return await super()._handle_emit(result, bot, target)
 
     async def _reply_str(self, content: str, bot: Bot, payload: MessageEventPayloadT):
-        return {}
+        dispatcher: MessageDispatcher = bot._em._dispatchers[payload.type]  # 回复来自各个渠道的消息
+        if self is dispatcher:
+            return {}
+        return await dispatcher._reply_str(content, bot, payload)
 
     # def register(self, box, bot: Bot, target: MessageEventPayloadT):
     #     super().register(box, bot, target)
