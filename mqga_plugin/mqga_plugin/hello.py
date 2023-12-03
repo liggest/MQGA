@@ -29,3 +29,10 @@ with group_only:
     def dollar():
         return "🉑"
 
+
+    @on_message.filter_by(lambda: ctx.message.content.strip().lower().startswith("/img"))
+    async def img():
+        url = ctx.message.content.strip().lower().removeprefix("/img")
+        file = await ctx.bot._api.group_file(ctx.message.group_id, url)
+        log.debug(f"FileInfo: {file!r}")
+        await ctx.bot._api.group_reply_media(f"FileInfo: {file!r}", file, ctx.payload)
