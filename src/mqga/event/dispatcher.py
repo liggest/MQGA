@@ -301,7 +301,7 @@ class ChannelAtMessageDispatcher(
     #     return await bot._api.channel_reply(result, target)
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.channel_reply(content, payload)
+        return await bot._api.channel.reply_text(content, payload)
 
     # async def dispatch(self, bot, payload):
     #     await super().dispatch(bot, payload)
@@ -322,7 +322,7 @@ class GroupAtMessageDispatcher(
         return bot._em.events.group_message
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.group_reply(content, payload)
+        return await bot._api.group.reply_text(content, payload)
 
 # TODO 改进写法
 class PrivateMessageDispatcher(
@@ -333,7 +333,7 @@ class PrivateMessageDispatcher(
         return bot._em.events.private_message
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.private_reply(content, payload)
+        return await bot._api.private.reply_text(content, payload)
 
 # TODO 改进写法
 class ChannelMessageReactionAddDispatcher(
@@ -342,7 +342,7 @@ class ChannelMessageReactionAddDispatcher(
 
     async def _handle_emit(self, result, bot, target):
         if isinstance(result, Emoji):
-            return await bot._api.channel_reaction(target.data, result)
+            return await bot._api.channel.reaction(target.data, result)
         return await super()._handle_emit(result, bot, target)
 
 # TODO 改进写法
@@ -352,5 +352,5 @@ class ChannelMessageReactionRemoveDispatcher(
     
     async def _handle_emit(self, result, bot, target):
         if isinstance(result, Emoji):
-            return await bot._api.channel_reaction_delete(target.data, result)
+            return await bot._api.channel.reaction_delete(target.data, result)
         return await super()._handle_emit(result, bot, target)

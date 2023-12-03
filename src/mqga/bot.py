@@ -104,5 +104,11 @@ class Bot:
 
     @property
     def user(self):
+        """ bot 用户信息 """
         if self._ws.inner:
             return self._ws.inner._user
+
+    @property
+    def api(self):
+        """ 官方提供的各种功能 """
+        return self._api

@@ -45,7 +45,7 @@ class WS:
     async def connect(self):
         if not self.url:
             log.info("WS 正在获取接入点")
-            self.url = await self.bot._api.ws_url()
+            self.url = await self.bot._api._unified_api.ws_url()
             log.debug(f"WS 拿到接入点 {self.url}")
         
         try:

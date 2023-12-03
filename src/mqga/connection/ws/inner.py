@@ -66,7 +66,7 @@ class WSInner:
         match payload:
             case HelloPayload():
                 self._heartbeat_interval = payload.data.heartbeat_interval / 1000 
-                token = await self.ws.bot._api.authorization
+                token = await self.ws.bot._api.client.authorization
                 if self._session_id:
                     await self._send_payload(ResumePayload(data=ResumeData(token=token, session_id=self._session_id, seq=self._last_seq_no)))
                 else:

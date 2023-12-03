@@ -7,20 +7,12 @@ import time
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.bot import Bot
-    from mqga.q.payload import EventPayloadWithChannelID
-    from mqga.q.message import Emoji, ChannelAndMessageID
-    from mqga.q.api import WSURL, AccessToken
-    from mqga.q.api import RepliedMessage, FileInfo
+    from mqga.q.api import AccessToken
 
 import httpx
 
 from mqga import LEGACY
 from mqga.log import log
-from mqga.q.payload import ChannelAtMessageEventPayload
-from mqga.q.payload import GroupAtMessageEventPayload, PrivateMessageEventPayload
-from mqga.q.message import ChannelMessage, MessageReaction
-from mqga.q.message import User
-from mqga.q.constant import MessageType, FileType
 
 class APIError(Exception):
 
@@ -40,7 +32,7 @@ class APIError(Exception):
     def message(self):
         return self._data.get("message") or self._data.get("msg")  # 什么玩意
 
-class API:
+class APIClient:
 
     def __init__(self, bot: Bot):
         self.bot = bot
@@ -190,101 +182,3 @@ class API:
         if self._client:
             await self._client.aclose()
         log.info("API 停止")
-
-    async def __aenter__(self):
-        # 并不在这里初始化，而是在 bot 初始化时初始化
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.stop()
-
-    # ========== #
-
-    async def ws_url(self) -> str:
-        """ 获取 ws 连接地址 """
-        rj: WSURL = await self._get("/gateway")
-        return rj["url"]
-
-    async def channel_reply(self, content: str, payload: EventPayloadWithChannelID):  # TODO
-        """ 回复频道消息、事件 """
-        return ChannelMessage(**await self._post(f"/channels/{payload.data.channel_id}/messages", data={
-            "content": content,
-            **({"msg_id": payload.data.id} if isinstance(payload, ChannelAtMessageEventPayload) 
-                else {"event_id": payload.type})
-        }))
-
-    def _channel_reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):
-        if isinstance(message, ChannelMessage):
-            return f"/channels/{message.channel_id}/messages/{message.id}/reactions/{emoji.type}/{emoji.id}"
-        return f"/channels/{message.channel_id}/messages/{message.target.id}/reactions/{emoji.type}/{emoji.id}"
-
-    async def channel_reaction(self, message: ChannelAndMessageID, emoji: Emoji):
-        """ 对频道消息贴表情 """
-        return await self._put(self._channel_reaction_url(message, emoji))
-
-    async def channel_reaction_delete(self, message: ChannelAndMessageID, emoji: Emoji):
-        """ 对频道消息揭表情 """
-        return await self._delete(self._channel_reaction_url(message, emoji))
-
-    async def channel_reaction_get_users_gen(self, message: ChannelAndMessageID, emoji: Emoji, per_page = 20):
-        """ 获取对消息贴表情的用户 """
-        if per_page > 50:
-            raise ValueError(f"{per_page=}，应确保 20 <= per_page <= 50")
-        url = self._channel_reaction_url(message, emoji)
-        data = {"limit": per_page}
-        result = await self._get(url, data)
-        data.clear()
-        yield [User(**user) for user in result["users"]]
-        while not result["is_end"]:
-            data["cookie"] = result["cookie"]
-            result = await self._get(url, data)
-            yield [User(**user) for user in result["users"]]
-
-    async def channel_reaction_get_head_users(self, message: ChannelMessage | MessageReaction, emoji: Emoji, limit = 20):
-        """ 获取对消息贴表情的用户，最多只能得到前 20 个 """
-        return await anext(self.channel_reaction_get_users_gen(message, emoji, limit))
-
-    async def group_reply(self, content: str, payload: GroupAtMessageEventPayload) -> RepliedMessage:
-        """ 回复群消息、事件 """
-        message_type = MessageType.Text  # TODO 其它消息类型
-        return await self._post(f"/v2/groups/{payload.data.group_id}/messages", data={
-            "content": content,
-            "msg_type": message_type,
-            **({"msg_id": payload.data.id} if isinstance(payload, GroupAtMessageEventPayload) 
-                else {"event_id": payload.type})  # TODO event_id
-        })
-
-    async def private_reply(self, content: str, payload: PrivateMessageEventPayload) -> RepliedMessage:
-        """ 回复私聊消息、事件 """
-        message_type = MessageType.Text  # TODO 其它消息类型
-        return await self._post(f"/v2/users/{payload.data.author.id}/messages", data={
-            "content": content,
-            "msg_type": message_type,
-            **({"msg_id": payload.data.id} if isinstance(payload, PrivateMessageEventPayload) 
-                else {"event_id": payload.type})  # TODO event_id
-        })
-
-    async def group_file(self, group_id: str, url: str, file_type: FileType = FileType.图片, send=False) -> FileInfo:
-        """ 
-            获取文件信息，用于在群聊发送富媒体消息
-                send = True 占用主动消息频次
-        """
-        return await self._post(f"/v2/groups/{group_id}/files", data={
-            "file_type": file_type,
-            "url": url,
-            "srv_send_msg": send
-            # "file_data":  暂未支持
-        })
-
-    async def group_reply_media(self, content: str, file: str | FileInfo, payload: GroupAtMessageEventPayload, file_type: FileType = FileType.图片) -> RepliedMessage:
-        """ 回复群消息、事件 """
-        message_type = MessageType.Media
-        if isinstance(file, str):
-            file = await self.group_file(payload.data.group_id, file, file_type)
-        return await self._post(f"/v2/groups/{payload.data.group_id}/messages", data={
-            "content": content,
-            "msg_type": message_type,
-            "media": file,
-            **({"msg_id": payload.data.id} if isinstance(payload, GroupAtMessageEventPayload) 
-                else {"event_id": payload.type})  # TODO event_id
-        })

@@ -26,5 +26,5 @@ with group_only:
         import asyncio
         async def delay(seconds = 3):
             await asyncio.sleep(seconds)
-            await bot._api.group_reply(str(seconds), payload)
+            await bot._api.group.reply_text(str(seconds), payload)
         return delay()
