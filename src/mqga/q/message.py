@@ -262,7 +262,7 @@ class Emoji(BaseModel):
     """ 表情类型 """
 
 class MessageReaction(BaseModel):
-    """ 对消息的表情表态 """
+    """ 对消息贴表情 """
     user_id: str
     """ 用户 ID """
     guild_id: str
@@ -272,6 +272,6 @@ class MessageReaction(BaseModel):
     target: ReactionTarget
     """ 表态目标 """
     emoji: Emoji
-    """ 表情表态 """
+    """ 贴上的表情 """
 
 ChannelAndMessageID = ChannelMessage | MessageReaction

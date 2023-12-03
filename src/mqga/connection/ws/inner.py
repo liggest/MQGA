@@ -84,28 +84,7 @@ class WSInner:
                     case ResumedEventPayload():
                         self._start_heartbeat()
                         self.to_connected_session()
-                    # case ChannelAtMessageEventPayload():
-                    #     log.debug(f"收到消息：{payload.data!r}")
-                    #     if payload.data.content.lower().endswith("hello"):
-                    #         await self.ws.bot._api.channel_reply("全体目光向我看齐，我宣布个事儿！\nMQGA！", payload)
-                    # case ChannelMessageReactionAddEventPayload():
-                    #     if self._user.id != payload.data.user_id:
-                    #         log.debug(f"收到表情表态：{payload.data!r}")
-                    #         if all(self._user.id != user.id for user in 
-                    #                await self.ws.bot._api.channel_reaction_get_head_users(payload.data, payload.data.emoji)):
-                    #             log.debug("自己也贴个表情…")
-                    #             await self.ws.bot._api.channel_reaction(payload.data, payload.data.emoji)
-                    #     else:
-                    #         log.debug(f"收到自己的表情表态：{payload.data!r}")
-                    # case ChannelMessageReactionRemoveEventPayload():
-                    #     if self._user.id != payload.data.user_id:
-                    #         log.debug(f"表情表态被取消：{payload.data!r}")
-                    #         if any(self._user.id == user.id for user in 
-                    #                await self.ws.bot._api.channel_reaction_get_head_users(payload.data, payload.data.emoji)):
-                    #             log.debug("也取消自己贴的表情…")
-                    #             await self.ws.bot._api.channel_reaction_delete(payload.data, payload.data.emoji)
-                    #     else:
-                    #         log.debug(f"自己的表情表态被取消：{payload.data!r}")
+                
                 await self.ws.bot._em.dispatch(payload)
                         
             case InvalidSessionPayload():

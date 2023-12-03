@@ -42,7 +42,7 @@ class Intents(IntFlag):
     GUILD_MESSAGES = 1 << 9
     """ 频道消息（私域） """
     GUILD_MESSAGE_REACTIONS = 1 << 10
-    """ 频道对消息做表情表态 """
+    """ 频道消息被贴表情 """
     DIRECT_MESSAGE = 1 << 12
     """ 私信消息 """
     OPEN_FORUMS_EVENT = 1 << 18
@@ -127,9 +127,9 @@ class Intents(IntFlag):
 #         MessageCreate = "MESSAGE_CREATE"
 #         """ 频道消息 """
 #         MessageReactionAdd = "MESSAGE_REACTION_ADD"
-#         """ 用户对频道消息附上表情表态 """
+#         """ 用户对频道消息贴表情 """
 #         MessageReactionRemove = "MESSAGE_REACTION_REMOVE"
-#         """ 用户对频道消息取消表情表态 """
+#         """ 用户对频道消息揭表情 """
 #         MessageAuditPass = "MESSAGE_AUDIT_PASS"
 #         """ 消息审核通过 """
 #         MessageAuditReject = "MESSAGE_AUDIT_REJECT"
@@ -261,9 +261,9 @@ class EventType(str, Enum):
     ChannelMessageDelete = "MESSAGE_DELETE"
     """ 频道消息撤回 """
     ChannelMessageReactionAdd = "MESSAGE_REACTION_ADD"
-    """ 用户对频道消息附上表情表态 """
+    """ 在频道消息上贴表情 """
     ChannelMessageReactionRemove = "MESSAGE_REACTION_REMOVE"
-    """ 用户对频道消息取消表情表态 """
+    """ 在频道消息上揭表情 """
     ChannelMessageAuditPass = "MESSAGE_AUDIT_PASS"
     """ 消息审核通过 """
     ChannelMessageAuditReject = "MESSAGE_AUDIT_REJECT"
@@ -431,7 +431,8 @@ class EmojiType(IntEnum):
     Emoji = 2
     """ 真正的 emoji """
 
-class MsgType(IntEnum):
+class MessageType(IntEnum):
+    """ 消息类型 """
     Text = 0
     """ 文本 """
     TextImage = 1
@@ -440,9 +441,14 @@ class MsgType(IntEnum):
     Ark = 3
     Embed = 4
     AT = 5
+    Media = 7
+    """ 富媒体 """
 
 class FileType(IntEnum):
-    图片 = 1 
+    图片 = 1
+    """ png / jpg """ 
     视频 = 2
-    语音 = 3 
+    """ mp4 """
+    语音 = 3
+    """ silk """ 
     文件 = 4
