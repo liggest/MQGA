@@ -1,0 +1,15 @@
+[project]
+name = "mqga_plugin"
+version = "0.1.0"
+description = "Collection of MQGA plugins"
+authors = [
+    {name = "",email = ""},
+]
+dependencies = []
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
