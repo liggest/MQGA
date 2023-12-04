@@ -33,7 +33,8 @@ if TYPE_CHECKING:
 
     __all__ = [
         "context", "channel_context", "group_context", 
-        "on_message", "on_event", "channel_only", "group_only", "private_only"
+        "on_message", "on_event", "channel_only", "group_only", "private_only",
+        "EventType"
     ]  # 让 ruff 满意
 
 from mqga.lookup.context import __getattr__ as __get_context_attr__
@@ -43,3 +44,4 @@ def __getattr__(name: str):
     # raise AttributeError
 
 from mqga.event.on import on_message, on_event, channel_only, group_only, private_only
+from mqga.q.constant import EventType
