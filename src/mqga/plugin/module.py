@@ -19,11 +19,20 @@ class PluginModule(types.ModuleType):
 
     def __repr__(self):
         return f"<PluginModule {self.name!r}>"
+    
+    @property
+    def path(self):
+        """ 插件路径 """
+        return Path(self.__file__)
 
+    @property
+    def data_dir(self):
+        """ 插件数据目录 """
+        return Path(f"./data/{self.path.stem}")
+    
 def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA 插件"):
-    """ 设置插件信息 """
-    # 找到调用函数所在的模块
-    frame = inspect.currentframe()
+    """ 设置插件"信息 """
+    frame = inspect.currentframe() # 找到调用函数所在的模块
     while not frame.f_code.co_qualname == "<module>":
         frame = frame.f_back
     path = Path(frame.f_code.co_filename)
