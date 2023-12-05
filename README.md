@@ -25,23 +25,27 @@ pdm install
 pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
 
   -D    
-        enable debug-level log output
+        debug -> set log to debug-level output
+  -L    
+        legacy -> used old qqbot api 
+  -R    
+        reload -> enable auto reloading mode
   -a string
-        qq 机器人ID
+        appid -> qq 机器人ID
   -s string
-        qq 机器人密钥
+        secret -> qq 机器人密钥
   -t string
-        qq 机器人令牌
+        token -> 机器人令牌
   -p
-        only listen to public intent
+        public -> only listen to public intent
   -b
-        run in sandbox api
+        sandbox -> run in sandbox api
   -c string
-        load from config
+        config -> load config from config file
   -d string
-        save bot config to filename (eg. config.toml)
+        dump -> save bot config to filename (eg. config.toml)
   -h    
-        print this help
+        help -> print MQGA help
 ```
 
   其中 qq 机器人ID、密钥、令牌 在 https://q.qq.com/bot/#/developer/developer-setting 获取
@@ -50,3 +54,5 @@ pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
   
   指令参数优先级: bot参数 > 指定config文件 > 默认config文件
 
+## 插件管理
+> TODO, 持续开发中
