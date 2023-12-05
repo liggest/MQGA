@@ -5,7 +5,7 @@ import argparse
 parser = argparse.ArgumentParser(description="MQGA Process argparse:")
 # 调试参数
 parser.add_argument('-D', '--debug', action='store_true', help='开启debug模式')
-parser.add_argument('-L', '--legacy', action='store_true', help='LEGACY')
+parser.add_argument('-L', '--legacy', action='store_true', help='使用旧版API运行')
 parser.add_argument('-R', '--reload', action='store_true', help='开发模式下的热重载')
 # config参数
 parser.add_argument('-a', '--appid', type=str, help='机器人ID, 在 https://q.qq.com/bot/#/developer/developer-setting 获取')
