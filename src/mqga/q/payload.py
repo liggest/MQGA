@@ -4,6 +4,7 @@ import operator
 from functools import reduce
 
 from pydantic import BaseModel, Field, TypeAdapter, ConfigDict
+from pydantic_core import PydanticUndefined
 
 from mqga.q.constant import OpCode, Intents, EventType
 from mqga.q.message import ChannelMessage, GroupMessage, PrivateMessage
@@ -170,3 +171,23 @@ def _receive_payloads():
 
 def receive_payloads_type():
     return TypeAdapter(_receive_payloads())
+
+def op_code_from(payload_cls: type[Payload]) -> OpCode | None:
+    if (code := payload_cls.model_fields["op_code"].default) is not PydanticUndefined:
+        return code 
+
+def event_type_from(payload_cls: type[EventPayload]) -> EventType | None:
+    if (event_type := payload_cls.model_fields["type"].default) is not PydanticUndefined:
+        return event_type 
+
+def payload_cls_from(op_code: OpCode):
+    if op_code == OpCode.Dispatch:
+        return EventPayload
+    if any(payload_type := cls for cls in Payload.__subclasses__() if op_code_from(cls) == op_code):
+        return payload_type
+    raise ValueError(f"没有对应 {op_code = } 的 Payload 子类")
+
+def event_payload_cls_from(event_type: EventType):
+    if any(payload_type := cls for cls in EventPayload.__subclasses__() if event_type_from(cls) == event_type):
+        return payload_type
+    raise ValueError(f"没有对应 {event_type = } 的 EventPayload 子类")

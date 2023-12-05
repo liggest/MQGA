@@ -6,7 +6,18 @@ from pathlib import Path
 
 from mqga.log import log
 
-def load(root = Path("./mqga_plugin/mqga_plugin")) -> dict[Path, ModuleType]:
+def load(root: Path | None = None) -> dict[Path, ModuleType]:
+    """ 加载所有识别到的插件 """
+    if root:  # 提供 Path 则从 Path 中加载
+        return load_all(root)
+    try:
+        import mqga_plugin  
+    except ImportError:
+        return load_all()  # 没安装 mqga_plugin ，从默认路径加载
+    return load_all(Path(mqga_plugin.__file__).parent)  # 从 mqga_plugin 中加载
+
+def load_all(root = Path("./mqga_plugin/mqga_plugin")) -> dict[Path, ModuleType]:
+    """ 加载 root 中的所有插件 """
     # if not (root / "__init__.py").exists():
     #     raise ValueError(f"请在 {root!r} 中创建 __init__.py，使其变成一个 Python 包")
     parent = root.parent

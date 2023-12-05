@@ -345,6 +345,9 @@ class EventPair:
 class EventType2Intent(EventPair, Enum):
     """ 事件类型与接收意向的对应关系 """
 
+    READY   = (Intents.NONE, EventType.WSReady)
+    RESUMED = (Intents.NONE, EventType.WSResumed)
+
     GUILD_CREATE   = (Intents.GUILDS, EventType.GulidJoin)
     GUILD_DELETE   = (Intents.GUILDS, EventType.GulidDelete)
     GUILD_UPDATE   = (Intents.GUILDS, EventType.GulidUpdate)

@@ -1,8 +1,13 @@
 
 from mqga import group_context as ctx, on_message, channel_only, group_only
+from mqga import on_event, EventType
 from mqga.log import log
 
 # from mqga.event.on import on_group_message, on_message, on_channel_message
+
+@on_event.of(EventType.WSReady)
+def ready():
+    log.info(f"{ctx.bot.user} 机器人已就绪")
 
 # @on_group_message
 # @on_private_message

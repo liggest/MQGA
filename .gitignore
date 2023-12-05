@@ -1,5 +1,7 @@
 # custom
 /.vscode
+.DS_Store
+/avatar
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

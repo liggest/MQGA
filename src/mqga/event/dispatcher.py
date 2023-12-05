@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING, TypeVar, Generic, get_origin, get_args, Iterable, Generator, Callable
+import types
 import inspect
 import re
 
@@ -17,6 +18,7 @@ from mqga.event.event import Box, Params, ReturnT, Event, StrEvent
 from mqga.q.constant import EventType, OpCode
 from mqga.q.constant import Intents, EventType2Intent
 from mqga.q.message import Emoji
+from mqga.q.payload import event_type_from, op_code_from
 from mqga.q.payload import Payload, EventPayload, ChannelAtMessageEventPayload
 from mqga.q.payload import ChannelMessageReactionAddEventPayload, ChannelMessageReactionRemoveEventPayload
 from mqga.q.payload import GroupAtMessageEventPayload, PrivateMessageEventPayload
@@ -100,14 +102,13 @@ class PayloadDispatcherMeta(type):
                 # 自动填充 PayloadDispatcher 子类的 _payload_type、_event_type
                 # 以及 EventPayloadDispatcher 子类的 _intent
                 attrs["_payload_type"] = _payload_type
-                fields = _payload_type.model_fields
                 if _payload_type is Payload or _payload_type is EventPayload:
                     _type = None
                 elif issubclass(_payload_type, EventPayload):
-                    _type = fields["type"].default  # EventType
+                    _type = event_type_from(_payload_type)  # EventType
                     attrs["_intent"] = EventType2Intent[_type].intent
                 else:
-                    _type = fields["op_code"].default
+                    _type = op_code_from(_payload_type)
                 attrs["_type"] = _type  # OpCode
         return super().__new__(meta, name, bases, attrs)
     
@@ -354,3 +355,15 @@ class ChannelMessageReactionRemoveDispatcher(
         if isinstance(result, Emoji):
             return await bot._api.channel.reaction_delete(target.data, result)
         return await super()._handle_emit(result, bot, target)
+
+def event_dispatcher_cls(payload_cls: type[Payload]):
+    """ 从 payload_type 动态创建 Dispatcher """
+    fileds = globals()
+    if issubclass(payload_cls, EventPayload):
+        name = f"{event_type_from(payload_cls).name}Dispatcher"
+        cls = fileds[name] = types.new_class(name, (EventPayloadDispatcher[payload_cls, None],))
+    else:
+        name = f"{op_code_from(payload_cls).name}Dispatcher"
+        cls = fileds[name] = types.new_class(name, (PayloadDispatcher[payload_cls, None],))
+    return cls
+
