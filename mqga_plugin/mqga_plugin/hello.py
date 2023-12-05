@@ -41,3 +41,12 @@ with group_only:
         file = await ctx.bot._api.group.file(ctx.message.group_id, url)
         log.debug(f"FileInfo: {file!r}")
         await ctx.bot._api.group.reply_media(f"FileInfo: {file!r}", file, ctx.payload)
+
+from mqga.plugin import plugin_info
+
+plugin_info(
+    name="你好",
+    author="哆啦NDA",
+    version="0.0.1",
+    description="测试插件"
+)
