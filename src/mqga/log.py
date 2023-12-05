@@ -3,6 +3,7 @@ import sys
 import logging
 from mqga.args import args
 from time import strftime
+from pathlib import Path
 
 PATH = os.path.abspath('.') + '/log/'
 DEFAULT_LOGGER_NAME = "MQGA"
@@ -28,8 +29,8 @@ COLORS = {
 
 DATEFMT = '%Y-%m-%d %H:%M:%S'
 Default_FMT = "\033[1;38m[\033[0m%(levelname)s\033[1;38m]\033[0m %(message)s"
-Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m-> %(pathname)s:%(lineno)s]\033[0m %(message)s"
-File_FMT = "[%(levelname)s ->%(pathname)s:%(lineno)s] %(asctime)s: %(message)s"
+Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m<- %(filename)s:%(lineno)s]\033[0m %(message)s"
+File_FMT = "[%(levelname)s <-%(pathname)s:%(lineno)s]\n%(asctime)s: %(message)s"
 
 # 变更等级颜色
 class ColoredFormatter(logging.Formatter):
@@ -41,6 +42,7 @@ class ColoredFormatter(logging.Formatter):
         if levelname in COLORS:
             levelname_color = f"\033[1;3{COLORS[levelname]}m{levelname}\033[0m"
             record.levelname = levelname_color
+        record.filename = "/".join(Path(record.pathname).parts[-3:])
         return logging.Formatter.format(self, record)
 
 
