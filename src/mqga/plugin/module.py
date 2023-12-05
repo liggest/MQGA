@@ -33,7 +33,7 @@ class PluginModule(types.ModuleType):
 def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA 插件"):
     """ 设置插件"信息 """
     frame = inspect.currentframe() # 找到调用函数所在的模块
-    while not frame.f_code.co_qualname == "<module>":
+    while not frame.f_code.co_name == "<module>":
         frame = frame.f_back
     path = Path(frame.f_code.co_filename)
     while path.parent.name != "mqga_plugin":
