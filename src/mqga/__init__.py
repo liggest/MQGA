@@ -44,15 +44,16 @@ else:
         from pathlib import Path
         paths = [Path("./src/"), *Path(".").glob("*.py"), *Path(".").glob("*.toml")]
         log.info("正在启用热重载…")
-        log.debug("\n".join(path.as_posix() for path in paths))
         args = sys.argv
-        if args[0].endswith(".py"):  # 去掉 bot.py 等
-            args = args[1:]
+        # if args[0].endswith(".py"):  # 去掉 bot.py 等
+        #     args = args[1:]
+        cmd = " ".join((sys.executable, *args))
+        # TODO 这里接收不到 debug
+        # log.debug(f"以下文件变化时执行：{cmd}")
+        # log.debug("\n".join(path.as_posix() for path in paths))
         watchfiles.run_process(*paths,
-            target=" ".join(("pdm", "bot", *args)), target_type="command"
+            target=cmd, target_type="command"
         )
-
-
 
 from typing import TYPE_CHECKING
 
