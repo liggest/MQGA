@@ -84,6 +84,7 @@ class Bot:
                     self._ws, 
                     self._stopper()
                     ):
+            # asyncio.create_task(self.subprocess_debug())
             await self.init()
             await self._ended.wait()
 
@@ -94,6 +95,12 @@ class Bot:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type is asyncio.CancelledError:
             log.info("Bot 取消执行")
+
+    # async def subprocess_debug(self):
+    #     import os
+    #     while True:
+    #         print("self", id(self), os.getpid())
+    #         await asyncio.sleep(10)
 
     def run(self):
         """ 入口 """  # TODO 暂定
