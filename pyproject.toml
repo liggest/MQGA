@@ -38,4 +38,5 @@ ignore = ["E501", "E402"]
 [tool.pdm.dev-dependencies]
 dev = [
     "-e mqga_plugin @ file:///${PROJECT_ROOT}/mqga_plugin",
+    "watchfiles>=0.21.0",
 ]
