@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.bot import Bot
+    from typing_extensions import Self
 
 from mqga.lookup import _vars
 from mqga.lookup.property import VarProperty
@@ -16,6 +17,21 @@ class BotContext:
 
     message = VarProperty(_vars._message)
     payload = VarProperty(_vars._payload)
+
+    @property
+    def in_any(self) -> Self:
+        """ 俺寻思这儿该跑任何渠道的代码吧？ """
+        return self
+
+    @property
+    def in_group(self) -> GroupContext:
+        """ 俺寻思这儿该跑群聊的代码吧？ """
+        return self
+    
+    @property
+    def in_channel(self) -> ChannelContext:
+        """ 俺寻思这儿该跑频道的的代码吧？ """
+        return self
 
 Context = BotContext
 

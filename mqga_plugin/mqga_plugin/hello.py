@@ -1,5 +1,5 @@
 
-from mqga import group_context as ctx, on_message, channel_only, group_only
+from mqga import context as ctx, on_message, channel_only, group_only
 from mqga import on_event, EventType
 from mqga.log import log
 
@@ -38,7 +38,7 @@ with group_only:
     @on_message.filter_by(lambda: ctx.message.content.strip().lower().startswith("/img"))
     async def img():
         url = ctx.message.content.strip().lower().removeprefix("/img")
-        file = await ctx.bot._api.group.file(ctx.message.group_id, url)
+        file = await ctx.bot._api.group.file(ctx.in_group.message.group_id, url)
         log.debug(f"FileInfo: {file!r}")
         await ctx.bot._api.group.reply_media(f"FileInfo: {file!r}", file, ctx.payload)
 
