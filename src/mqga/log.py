@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from mqga.args import args
 from time import strftime
 
 PATH = os.path.abspath('.') + '/log/'
@@ -27,8 +28,8 @@ COLORS = {
 
 DATEFMT = '%Y-%m-%d %H:%M:%S'
 Default_FMT = "\033[1;38m[\033[0m%(levelname)s\033[1;38m]\033[0m %(message)s"
-Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m-> %(filename)s:%(lineno)s]\033[0m %(message)s"
-File_FMT = "[%(levelname)s ->%(filename)s:%(lineno)s] %(asctime)s: %(message)s"
+Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m-> %(pathname)s:%(lineno)s]\033[0m %(message)s"
+File_FMT = "[%(levelname)s ->%(pathname)s:%(lineno)s] %(asctime)s: %(message)s"
 
 # 变更等级颜色
 class ColoredFormatter(logging.Formatter):
@@ -81,5 +82,9 @@ class MQGALog(object):
         self.logger.addHandler(self.std_handler)
 
 logset = MQGALog()
-
+if args.debug:  # 设置log输出样式
+    logset.set_debug()
 log = logset.logger
+if args.debug:  # 设置log输出样式
+    log.debug("已进入debug mode")
+

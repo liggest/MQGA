@@ -1,29 +1,12 @@
 
-LEGACY = False
-RELOAD = False
+from mqga.args import args
+from mqga.log import log
 
-def _pre_defined():
-    global LEGACY, RELOAD
-    
-    import argparse
-    import sys
+LEGACY = args.legacy
+if LEGACY:
+    log.info("【旧 频道模式】…")
 
-    parser = argparse.ArgumentParser(description="MQGA Pre-defined")
-    parser.add_argument('-L', '--legacy', action='store_true', help='LEGACY')
-    parser.add_argument('-R', '--reload', action='store_true', help='开发模式下的热重载')
-
-    args, rest = parser.parse_known_args()
-    
-    sys.argv = [sys.argv[0], *rest]
-
-    LEGACY = args.legacy
-    RELOAD = args.reload
-    if LEGACY:
-        from mqga.log import log
-        log.info("【旧 频道模式】…")
-
-_pre_defined()
-
+RELOAD = args.reload
 if not RELOAD:
     def run():
         from mqga.bot import Bot
@@ -33,7 +16,6 @@ if not RELOAD:
 else:
     def run():
         import sys
-        from mqga.log import log
         
         try:
             import watchfiles
