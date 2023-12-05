@@ -22,10 +22,8 @@ args = parser.parse_args()
 #     if sys.argv[i] == '-R' or sys.argv[i] == '--reload':
 #         del sys.argv[i]
 #         break
-
-# if '-R' in sys.argv:
-#     sys.argv.remove('-R')
-# if '--reload' in sys.argv:
-#     sys.argv.remove('--reload')
-
-sys.argv = [arg  for arg in sys.argv if arg != '-R' and arg != '--reload']
+if '-R' in sys.argv:
+    sys.argv.remove('-R')
+if '--reload' in sys.argv:
+    sys.argv.remove('--reload')
+    
