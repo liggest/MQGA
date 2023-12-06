@@ -6,6 +6,7 @@ LEGACY = args.legacy
 if LEGACY:
     log.info("【旧 频道模式】…")
 
+DEBUG = args.debug
 RELOAD = args.reload
 if not RELOAD:
     def run():
@@ -30,20 +31,18 @@ else:
         # if args[0].endswith(".py"):  # 去掉 bot.py 等
         #     args = args[1:]
         cmd = " ".join((sys.executable, *args))
-        # TODO 这里接收不到 debug
-        # log.debug(f"以下文件变化时执行：{cmd}")
-        # log.debug("\n".join(path.as_posix() for path in paths))
-        watchfiles.run_process(*paths,
-            target=cmd, target_type="command"
-        )
+        log.debug(f"以下目录、文件变化时执行：{cmd}")
+        log.debug("\n".join(path.as_posix() for path in paths))
+
+        watchfiles.run_process(*paths, target=cmd, target_type="command")
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mqga.lookup.context import context, channel_context, group_context
+    from mqga.lookup.context import context, channel_context, group_context, private_context
 
     __all__ = [
-        "context", "channel_context", "group_context", 
+        "context", "channel_context", "group_context", "private_context",
         "on_message", "on_event", "channel_only", "group_only", "private_only",
         "EventType"
     ]  # 让 ruff 满意

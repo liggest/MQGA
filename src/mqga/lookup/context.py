@@ -24,20 +24,25 @@ class BotContext:
         return self
 
     @property
+    def in_channel(self) -> ChannelContext:
+        """ 俺寻思这儿该跑频道的的代码吧？ """
+        return self
+
+    @property
     def in_group(self) -> GroupContext:
         """ 俺寻思这儿该跑群聊的代码吧？ """
         return self
     
     @property
-    def in_channel(self) -> ChannelContext:
-        """ 俺寻思这儿该跑频道的的代码吧？ """
+    def in_private(self) -> PrivateContext:
+        """ 俺寻思这儿该跑私聊的代码吧？ """
         return self
 
 Context = BotContext
 
 if TYPE_CHECKING:
 
-    from mqga.q.message import ChannelMessage, GroupMessage
+    from mqga.q.message import ChannelMessage, GroupMessage, PrivateMessage
 
     class ChannelContext(BotContext):
 
@@ -47,11 +52,16 @@ if TYPE_CHECKING:
 
         message: GroupMessage
 
+    class PrivateContext(BotContext):
+
+        message: PrivateMessage
+
     context = _vars._last_ctx.get()
     channel_context: ChannelContext
     group_context: GroupContext
+    private_context: PrivateContext
 
-_context_names = {"context", "channel_context", "group_context"}
+_context_names = {"context", "channel_context", "group_context", "private_context"}
 
 def _get_context():
     return _vars._last_ctx.get()
