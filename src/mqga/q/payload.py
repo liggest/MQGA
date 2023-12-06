@@ -159,7 +159,7 @@ EventPayloadWithChannelID = (ChannelAtMessageEventPayload
 
 def _event_payloads() -> type[ReadyEventPayload] | type[ResumedEventPayload] | type[EventPayload]:
     return Annotated[
-        reduce(operator.or_, EventPayload.__subclasses__()),  # TODO 目前只支持 EventPayload 的直接子类
+        reduce(operator.or_, EventPayload.__subclasses__()),  # 目前只支持 EventPayload 的直接子类
         Field(discriminator="type")
     ]
 

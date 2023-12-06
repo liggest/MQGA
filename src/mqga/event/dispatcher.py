@@ -66,7 +66,7 @@ class Dispatcher(Generic[T, Params, ReturnT]):
 class EventDispatcher(Dispatcher[Event[Params, ReturnT], Params, ReturnT]):
 
     # async def is_accept(self, bot, target) -> bool:
-    #     # TODO
+    #     
     #     raise NotImplementedError
 
     # async def _pre_dispatch(self, bot, target):
@@ -185,7 +185,7 @@ class EventPayloadDispatcher(PayloadDispatcher[EventPayloadT, ReturnT]):
             log.warning(f"{subcls!r} 覆盖了 {old_sub!r}")
         subcls._subs[subcls._type] = subcls
 
-# TODO 改进写法
+
 class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     
     # def __init__(self, manager: Manager):
@@ -314,7 +314,7 @@ class ChannelAtMessageDispatcher(
         
     #     return True
 
-# TODO 改进写法
+
 class GroupAtMessageDispatcher(
     MessageDispatcher[GroupAtMessageEventPayload]
 ):
@@ -325,7 +325,7 @@ class GroupAtMessageDispatcher(
     async def _reply_str(self, content, bot, payload):
         return await bot._api.group.reply_text(content, payload)
 
-# TODO 改进写法
+
 class PrivateMessageDispatcher(
     MessageDispatcher[PrivateMessageEventPayload]
 ):
@@ -336,7 +336,7 @@ class PrivateMessageDispatcher(
     async def _reply_str(self, content, bot, payload):
         return await bot._api.private.reply_text(content, payload)
 
-# TODO 改进写法
+
 class ChannelMessageReactionAddDispatcher(
     EventPayloadDispatcher[ChannelMessageReactionAddEventPayload, Emoji]
 ):
@@ -346,7 +346,7 @@ class ChannelMessageReactionAddDispatcher(
             return await bot._api.channel.reaction(target.data, result)
         return await super()._handle_emit(result, bot, target)
 
-# TODO 改进写法
+
 class ChannelMessageReactionRemoveDispatcher(
     EventPayloadDispatcher[ChannelMessageReactionRemoveEventPayload, Emoji]
 ):
@@ -357,7 +357,7 @@ class ChannelMessageReactionRemoveDispatcher(
         return await super()._handle_emit(result, bot, target)
 
 def event_dispatcher_cls(payload_cls: type[Payload]):
-    """ 从 payload_type 动态创建 Dispatcher """
+    """ 从 payload_cls 动态创建 Dispatcher """
     fileds = globals()
     if issubclass(payload_cls, EventPayload):
         name = f"{event_type_from(payload_cls).name}Dispatcher"

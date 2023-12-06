@@ -73,10 +73,10 @@ class UnifiedAPI:
         return {"msg_type": _type}
 
     @staticmethod
-    def _reply_id(payload: EventPayload):
+    def _reply_id(payload: EventPayload):  # TODO 确定所有能回复的 payload 类型
         if isinstance(payload.data, Message):
             return {"msg_id": payload.data.id}
-        return {"event_id": payload.type}  # TODO event_id
+        return {"event_id": payload.type}
 
     async def reply_text(self, content: str, payload: EventPayload):
         """ 以文本回复消息、事件 """

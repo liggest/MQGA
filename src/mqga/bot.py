@@ -48,10 +48,10 @@ class Bot:
         # raise NotImplementedError  # TODO
         return None
     
-    @property
-    def PLUGIN_PATH(self):
-        from pathlib import Path
-        return Path("./plugin")
+    # @property
+    # def PLUGIN_PATH(self):
+    #     from pathlib import Path
+    #     return Path("./mqga_plugin/mqga_plugin")
 
     @property
     def intents(self):
@@ -103,7 +103,7 @@ class Bot:
     #         await asyncio.sleep(10)
 
     def run(self):
-        """ 入口 """  # TODO 暂定
+        """ 入口 """  # 暂定
         try:
             asyncio.run(self._run())
         except KeyboardInterrupt:
