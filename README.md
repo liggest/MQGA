@@ -22,14 +22,8 @@ pdm install
 ## 命令行参数
 > `[]`代表是可选参数
 ```bash
-pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
+pdm bot [-Tadhst] ID1 ID2 ...
 
-  -D    
-        debug -> set log to debug-level output
-  -L    
-        legacy -> used old qqbot api 
-  -R    
-        reload -> enable auto reloading mode
   -a string
         appid -> qq 机器人ID
   -s string
@@ -46,6 +40,12 @@ pdm run pytthon bot.py [-Tadhst] ID1 ID2 ...
         dump -> save bot config to filename (eg. config.toml)
   -h    
         help -> print MQGA help
+  -D    
+        debug -> set log to debug-level output
+  -L    
+        legacy -> used old qqbot api 
+  -R    
+        reload -> enable auto reloading mode
 ```
 
   其中 qq 机器人ID、密钥、令牌 在 https://q.qq.com/bot/#/developer/developer-setting 获取
