@@ -15,7 +15,7 @@
 ## 安装
 > 安装python3.10+
 ```bash
-pip install pdm
+pip install --user pdm
 # cd到项目目录
 pdm install
 ```
@@ -24,19 +24,19 @@ pdm install
 ```bash
 pdm bot [-Tadhst] ID1 ID2 ...
 
-  -a string
+  -a <str>
         appid -> qq 机器人ID
-  -s string
+  -s <str>
         secret -> qq 机器人密钥
-  -t string
+  -t <str>
         token -> 机器人令牌
   -p
         public -> only listen to public intent
   -b
         sandbox -> run in sandbox api
-  -c string
+  -c <str>
         config -> load config from config file
-  -d string
+  -d <str>
         dump -> save bot config to filename (eg. config.toml)
   -h    
         help -> print MQGA help
