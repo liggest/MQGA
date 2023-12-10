@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, Generic, Iterable, AsyncGenerator, Callable, overload
+from typing import TypeVar, Generic, Iterable, AsyncGenerator, Callable
 
 from abc import ABCMeta, abstractmethod
 
@@ -124,22 +124,22 @@ class SingleEvent(Event[Params, ReturnT]):
 
 PairLeft = TypeVar("PairLeft")
 PairRight = TypeVar("PairRight")
+Pair = tuple[PairLeft, PairRight]
+# class Pair(tuple[PairLeft, PairRight]):
 
-class Pair(tuple[PairLeft, PairRight]):
+#     def __new__(cls, left: PairLeft, right: PairRight):
+#         return super().__new__(cls, (left, right))
 
-    def __new__(cls, left: PairLeft, right: PairRight):
-        return super().__new__(cls, (left, right))
+#     @property
+#     def left(self) -> PairLeft:
+#         return self[0]
 
-    @property
-    def left(self) -> PairLeft:
-        return self[0]
+#     @property
+#     def right(self) -> PairRight:
+#         return self[1]
 
-    @property
-    def right(self) -> PairRight:
-        return self[1]
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.left!r}, {self.right!r})"
+#     def __repr__(self):
+#         return f"{self.__class__.__name__}({self.left!r}, {self.right!r})"
 
 RuleT = TypeVar("RuleT")
 
@@ -151,28 +151,12 @@ class RuleEvent(Generic[RuleT, Params, ReturnT], Event[Params, ReturnT]):
     def callbacks(self) -> Iterable[Pair[RuleT | Callable[[RuleT], bool], Box[Params, ReturnT]]]:
         raise NotImplementedError
 
-    @overload
-    def register(self, rule: RuleT, callback: Box[Params, ReturnT]) -> None:
-        ...
-
-    @overload
-    def register(self, rule: Callable[[RuleT], bool], callback: Box[Params, ReturnT]) -> None:
-        ...
-
     @abstractmethod
-    def register(self, rule, callback) -> None:
+    def register(self, rule: RuleT | Callable[[RuleT], bool], callback: Box[Params, ReturnT]) -> None:
         raise NotImplementedError
     
-    @overload
-    def unregister(self, rule: RuleT, callback: Box[Params, ReturnT]) -> None:
-        ...
-
-    @overload
-    def unregister(self, rule: Callable[[RuleT], bool], callback: Box[Params, ReturnT]) -> None:
-        ...
-
     @abstractmethod
-    def unregister(self, rule, callback) -> bool:
+    def unregister(self, rule: RuleT | Callable[[RuleT], bool] | None, callback: Box[Params, ReturnT] | None) -> bool:
         raise NotImplementedError
     
     @abstractmethod
@@ -197,7 +181,7 @@ class RuleMultiEvent(RuleEvent[RuleT, Params, ReturnT]):
         return self._callbacks
 
     def register(self, rule: RuleT | Callable[[RuleT], bool], callback: Box[Params, ReturnT]) -> None:
-        self.callbacks.append(Pair(rule, callback))
+        self.callbacks.append((rule, callback))
 
     def unregister(self, rule: RuleT | Callable[[RuleT], bool] | None, callback: Box[Params, ReturnT] | None) -> bool:
         """ 查找并移除 (rule, callback)。rule 和 callback 的其一可以为 None，届时将先遍历查找对应的另一项，之后再移除 """
@@ -205,11 +189,11 @@ class RuleMultiEvent(RuleEvent[RuleT, Params, ReturnT]):
            return False
         pair = None
         if rule is None:
-            any(pair := p for p in self.callbacks if p.right is callback)
+            any(pair := p for p in self.callbacks if p[1] is callback)
         elif callback is None:
-            any(pair := p for p in self.callbacks if p.left == rule)
+            any(pair := p for p in self.callbacks if p[0] == rule)
         else:
-            pair = Pair(rule, callback)
+            pair = (rule, callback)
         try:
             self.callbacks.remove(pair)
             return True
