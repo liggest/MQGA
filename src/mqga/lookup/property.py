@@ -9,12 +9,20 @@ class VarProperty(Generic[T]):
     def __init__(self, var: ContextVar[T], default=None):
         self.var = var
         self.default = default
+        self._token = None
 
     def __get__(self, obj, cls) -> T:
         return self.var.get()
 
     def __set__(self, obj, val: T):
-        return self.var.set(val)
+        if self._token is None:
+            self._token = self.var.set(val)
+        else:
+            self.var.set(val)
     
     def __delete__(self, obj):
-        self.var.set(self.default)
+        if self._token:
+            self.var.reset(self._token)
+            self._token = None
+        else:
+            self.__set__(obj, self.default)
