@@ -3,17 +3,16 @@ from __future__ import annotations
 from functools import cached_property
 from types import ModuleType
 from collections import deque
-import re
+# import re
 
 from typing import Callable, get_args, overload, TYPE_CHECKING
+from typing import TypeVar, Generic
 if TYPE_CHECKING:
     from typing_extensions import Self
 
-from mqga.event.event import PlainEvent, StrEvent
+from mqga.event.event import Event, PlainEvent, StrEvent
+from mqga.event.special import RegexEvent
 from mqga.q.payload import Payload
-
-from mqga.event.event import Event
-from typing import TypeVar, Generic
 
 EventT = TypeVar("EventT", bound=Event)
 
@@ -202,11 +201,16 @@ class MessageSpace:
             event = self._full_match_dict[content] = StrEvent(f"{self.source}_message_full_match_{content!r}")
         return event
     
-    @cached_property
-    def regex(self) -> deque[tuple[re.Pattern, StrEvent]]:
-        """ 消息与正则匹配 """
-        return deque()
+    # @cached_property
+    # def regex(self) -> deque[tuple[re.Pattern, StrEvent]]:
+    #     """ 消息与正则匹配 """
+    #     return deque()
     
+    @EventProperty[RegexEvent]
+    def regex(self):
+        """ 消息与正则匹配 """
+        return RegexEvent(f"{self.source}_message_regex")
+
     @cached_property
     def filter_by(self) -> deque[tuple[Callable[[], bool], StrEvent]]:
         """ 消息与过滤函数匹配 """

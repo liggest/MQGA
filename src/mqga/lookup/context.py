@@ -38,6 +38,8 @@ class BotContext:
         """ 俺寻思这儿该跑私聊的代码吧？ """
         return self
 
+    matched_regex = VarProperty(_vars._matched_regex)
+
 Context = BotContext
 
 if TYPE_CHECKING:

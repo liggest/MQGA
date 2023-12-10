@@ -40,7 +40,13 @@ with group_only:
         url = ctx.message.content.strip().lower().removeprefix("/img")
         file = await ctx.bot._api.group.file(ctx.in_group.message.group_id, url)
         log.debug(f"FileInfo: {file!r}")
-        await ctx.bot._api.group.reply_media(f"FileInfo: {file!r}", file, ctx.payload)
+        return ctx.bot._api.group.reply_media(f"FileInfo: {file!r}", file, ctx.payload)
+
+    @on_message.regex(r"[/]?(lr|左右)\s*(?P<left>\S+)?\s*(?P<right>\S+)?")
+    async def lr():
+        match = ctx.matched_regex
+        left, right = match.group('left'), match.group('right')
+        return f"{left = !r}  {right = !r}"
 
 from mqga.plugin import plugin_info
 

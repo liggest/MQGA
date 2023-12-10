@@ -9,12 +9,12 @@ import re
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.event.manager import Manager
-    from mqga.event.space import MessageSpace
     from mqga.q.message import Message
 
 from mqga.log import log
 from mqga.event.event import Box, Params, ReturnT, Event, StrEvent
 # from mqga.event.event import PlainReturns
+from mqga.event.space import MessageSpace
 from mqga.q.constant import EventType, OpCode
 from mqga.q.constant import Intents, EventType2Intent
 from mqga.q.message import Emoji
@@ -227,10 +227,12 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     async def regex_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._regex_events
         # events = bot._em.events.message_regex
-        events = space.regex
-        if events:
-            coros = (event.emit() for pattern, event in events if pattern.search(message.content))
-            return self.flatten(await asyncio.gather(*coros))
+        # events = space.regex
+        # if events:
+        #     coros = (event.emit() for pattern, event in events if pattern.search(message.content))
+        #     return self.flatten(await asyncio.gather(*coros))
+        if event := MessageSpace.regex.get_in(space):
+            return await event.emit(message.content)
 
     async def filter_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._filter_events
@@ -243,9 +245,9 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     async def message_emit(self, space: MessageSpace, message: Message):
         # event = self._message_event
         # event = bot._em.events.message
-        event = space.any
         # if not (event._full_match_events and event._regex_events and event._filter_events):
-        return await event.emit()
+        if event := MessageSpace.any.get_in(space):
+            return await event.emit()
 
     async def _handle_emit(self, result, bot: Bot, target: MessageEventPayloadT):
         if isinstance(result, str):
@@ -273,9 +275,10 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
 
     def register_regex(self, box: Box, bot: Bot, content: str):
         space = self._message_space(bot)
-        event = StrEvent(f"{space.source}_message_regex_{content!r}")
-        event.register(box)
-        space.regex.append((re.compile(content), event))
+        space.regex.register(re.compile(content), box)
+        # event = StrEvent(f"{space.source}_message_regex_{content!r}")
+        # event.register(box)
+        # space.regex.append((re.compile(content), event))
 
     def register_filter_by(self, box: Box, bot: Bot, filter: Callable[[], bool]):
         space = self._message_space(bot)

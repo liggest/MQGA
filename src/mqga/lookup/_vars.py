@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from mqga.lookup.context import BotContext
     from mqga.q.payload import Payload, EventPayload
     from mqga.q.message import Message
+    import re
 
 from contextvars import ContextVar
     
@@ -15,3 +16,5 @@ _last_bot: ContextVar[Bot | None] = ContextVar("last_bot", default=None)
 _payload: ContextVar[Payload | EventPayload | None] = ContextVar("payload", default=None)
 _message: ContextVar[Message | None] = ContextVar("message", default=None)
 
+_matched_regex: ContextVar[re.Match | None] = ContextVar("matched", default=None)
+_matched_val: ContextVar[None] = ContextVar("matched", default=None)
