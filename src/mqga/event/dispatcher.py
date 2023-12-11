@@ -273,9 +273,9 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     def register_full_match(self, box: Box, bot: Bot, content: str):
         self._message_space(bot).full_match(content).register(box)
 
-    def register_regex(self, box: Box, bot: Bot, content: str):
+    def register_regex(self, box: Box, bot: Bot, content: str, flags: re._FlagsType = 0):
         space = self._message_space(bot)
-        space.regex.register(re.compile(content), box)
+        space.regex.register(re.compile(content, flags), box)
         # event = StrEvent(f"{space.source}_message_regex_{content!r}")
         # event.register(box)
         # space.regex.append((re.compile(content), event))
