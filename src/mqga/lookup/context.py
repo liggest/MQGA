@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from functools import cached_property
+from typing import TYPE_CHECKING, TypeVar
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from typing_extensions import Self
+    T = TypeVar("T")
 
 from mqga.lookup import _vars
 from mqga.lookup.property import VarProperty
@@ -38,9 +40,25 @@ class BotContext:
         """ 俺寻思这儿该跑私聊的代码吧？ """
         return self
 
-    matched_regex = VarProperty(_vars._matched_regex)
+    @cached_property
+    def matched(self):
+        return Matched()
+
+    # matched_regex = VarProperty(_vars._matched_regex)
 
 Context = BotContext
+
+class Matched:
+
+    regex = VarProperty(_vars._matched_regex)
+    filter_by = VarProperty(_vars._matched_filter_by, default=())
+
+    def collect(self, result: T) -> T:
+        """ 将 result 作为当前匹配的结果加入 matched.filter_by """
+        self.filter_by = self.filter_by + (result,)
+        return result
+    
+    __lshift__ = collect
 
 if TYPE_CHECKING:
 

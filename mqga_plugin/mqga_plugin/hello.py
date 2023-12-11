@@ -34,17 +34,17 @@ with group_only:
     def dollar():
         return "🉑"
 
-
-    @on_message.filter_by(lambda: ctx.message.content.strip().lower().startswith("/img"))
+    @on_message.filter_by(lambda: (ctx.matched << ctx.message.content.strip().lower()).startswith("/img"))
     async def img():
-        url = ctx.message.content.strip().lower().removeprefix("/img")
+        cmd: str = ctx.matched.filter_by[0]
+        url = cmd.removeprefix("/img").lstrip()
         file = await ctx.bot._api.group.file(ctx.in_group.message.group_id, url)
         log.debug(f"FileInfo: {file!r}")
-        return ctx.bot._api.group.reply_media(f"FileInfo: {file!r}", file, ctx.payload)
+        return ctx.bot._api.group.reply_media("", file, ctx.payload)
 
     @on_message.regex(r"[/]?(lr|左右)\s*(?P<left>\S+)?\s*(?P<right>\S+)?")
     async def lr():
-        match = ctx.matched_regex
+        match = ctx.matched.regex
         left, right = match.group('left'), match.group('right')
         return f"{left = !r}  {right = !r}"
 

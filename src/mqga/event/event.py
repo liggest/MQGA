@@ -44,7 +44,7 @@ class Event(Generic[Params, ReturnT], metaclass=ABCMeta):
         raise NotImplementedError
         yield
 
-    async def emit(self, *args: Params.args, **kw: Params.kwargs):
+    async def emit(self, *args: Params.args, **kw: Params.kwargs) -> list[ReturnT]:
         return [r async for r in self._emit_gen(*args, **kw)]
     
     def _error(self, e: Exception):
@@ -164,7 +164,7 @@ class RuleEvent(Generic[RuleT, Params, ReturnT], Event[Params, ReturnT]):
         raise NotImplementedError
         yield
     
-    async def emit(self, rule_arg: RuleT, *args: Params.args, **kw: Params.kwargs):
+    async def emit(self, rule_arg: RuleT, *args: Params.args, **kw: Params.kwargs) -> list[ReturnT]:
         return [r async for r in self._emit_gen(rule_arg, *args, **kw)]
 
 class RuleMultiEvent(RuleEvent[RuleT, Params, ReturnT]):

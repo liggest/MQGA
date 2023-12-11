@@ -16,5 +16,5 @@ _last_bot: ContextVar[Bot | None] = ContextVar("last_bot", default=None)
 _payload: ContextVar[Payload | EventPayload | None] = ContextVar("payload", default=None)
 _message: ContextVar[Message | None] = ContextVar("message", default=None)
 
-_matched_regex: ContextVar[re.Match | None] = ContextVar("matched", default=None)
-_matched_val: ContextVar[None] = ContextVar("matched", default=None)
+_matched_regex: ContextVar[re.Match | None] = ContextVar("matched_regex", default=None)
+_matched_filter_by: ContextVar[tuple] = ContextVar("matched_filter_by", default=())

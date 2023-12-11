@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from mqga.q.message import Message
 
 from mqga.log import log
-from mqga.event.event import Box, Params, ReturnT, Event, StrEvent
+from mqga.event.event import Box, Params, ReturnT, Event
 # from mqga.event.event import PlainReturns
 from mqga.event.space import MessageSpace
 from mqga.q.constant import EventType, OpCode
@@ -237,10 +237,12 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     async def filter_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._filter_events
         # events = bot._em.events.message_filter_by
-        events = space.filter_by
-        if events:
-            coros = (event.emit() for is_accept, event in events if is_accept())
-            return self.flatten(await asyncio.gather(*coros))
+        # events = space.filter_by
+        # if events:
+        #     coros = (event.emit() for is_accept, event in events if is_accept())
+        #     return self.flatten(await asyncio.gather(*coros))
+        if event := MessageSpace.filter_by.get_in(space):
+            return await event.emit(None)
 
     async def message_emit(self, space: MessageSpace, message: Message):
         # event = self._message_event
@@ -282,9 +284,10 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
 
     def register_filter_by(self, box: Box, bot: Bot, filter: Callable[[], bool]):
         space = self._message_space(bot)
-        event = StrEvent(f"{space.source}_message_filter_by_{filter!r}")
-        event.register(box)
-        space.filter_by.append((filter, event))
+        space.filter_by.register(filter, box)
+        # event = StrEvent(f"{space.source}_message_filter_by_{filter!r}")
+        # event.register(box)
+        # space.filter_by.append((filter, event))
 
 class ChannelAtMessageDispatcher(
     MessageDispatcher[ChannelAtMessageEventPayload]
