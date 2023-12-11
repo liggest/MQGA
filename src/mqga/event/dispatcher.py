@@ -221,7 +221,7 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
         # events = self._message_event._full_match_events
         # events = bot._em.events._message_full_match_dict
         events = space._full_match_dict
-        if events and (event := events.get(message.content)):
+        if events and (event := events.get(message.content.strip())):
             return await event.emit()
 
     async def regex_emit(self, space: MessageSpace, message: Message):
