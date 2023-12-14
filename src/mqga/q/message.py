@@ -156,6 +156,9 @@ class Message(BaseModel):
     attachments: list[UrlAttachment] | None = None
     """ 附件列表 """
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
 # class Message(BaseModel):
 #     """ 消息 """
 #     model_config = ConfigDict(populate_by_name=True)

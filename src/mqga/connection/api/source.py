@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from weakref import WeakKeyDictionary
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.connection.api.client import APIClient
@@ -68,23 +70,53 @@ class UnifiedAPI:
             return payload
         raise NotImplementedError(f"尚未实现将 {payload!r} 转换为 {cls.__name__} 的 id")
 
-    @staticmethod
-    def _message_type_data(_type: MessageType):
-        return {"msg_type": _type}
+    @classmethod
+    def _message_data(cls, content: str, payload: EventPayload, type: MessageType, media: FileInfo = None, _sequence = 1):
+        data = {"content": content}
+        cls._message_type_data(data, type)
+        cls._reply_id_data(data, payload)
+        cls._message_media_data(data, media)
+        cls._message_sequence_data(data, payload, _sequence)
+        return data
 
     @staticmethod
-    def _reply_id(payload: EventPayload):  # TODO 确定所有能回复的 payload 类型
+    def _message_type_data(data: dict, _type: MessageType):
+        data["msg_type"] = _type
+        return data
+
+    @staticmethod
+    def _reply_id_data(data: dict, payload: EventPayload):  # TODO 确定所有能回复的 payload 类型
         if isinstance(payload.data, Message):
-            return {"msg_id": payload.data.id}
-        return {"event_id": payload.type}
+            data["msg_id"] = payload.data.id
+        else:
+            data["event_id"] = payload.type
+        return data
+
+    @staticmethod
+    def _message_media_data(data: dict, media: FileInfo = None):
+        if media:
+            data["media"] = media
+        return data
+
+    _sequences: WeakKeyDictionary[EventPayload, int] = WeakKeyDictionary()
+
+    @classmethod
+    def _message_sequence_data(cls, data: dict, payload: EventPayload, _sequence = 1):
+        """ 缓存对当前 payload 发过消息的次数（+1） """
+        _sequence = cls._sequences.get(payload, _sequence)
+        # log.debug(f"[{len(cls._sequences)}] {id(payload)}  {getattr(payload.data, 'content')}  {_sequence = }")
+        if _sequence != 1:
+            data["msg_seq"] = _sequence
+        cls._sequences[payload] = _sequence + 1
+        return data
 
     async def reply_text(self, content: str, payload: EventPayload):
         """ 以文本回复消息、事件 """
-        return await self._post_source(f"/{self._to_id(payload)}/messages", data={
-            "content": content,
-            **self._message_type_data(MessageType.Text),  # TODO 其它消息类型
-            **self._reply_id(payload)
-        })
+        return await self._post_source(f"/{self._to_id(payload)}/messages", data=self._message_data(
+            content=content,
+            payload=payload,
+            type=MessageType.Text,  # TODO 其它消息类型
+        ))
 
     async def file(self, payload_or_id: EventPayload | str, url: str, file_type: FileType = FileType.图片, send=False) -> FileInfo:
         """ 
@@ -102,17 +134,17 @@ class UnifiedAPI:
             # "file_data":  暂未支持
         })
 
-    async def reply_media(self, content: str, file_or_url: str | FileInfo, payload: EventPayload, file_type: FileType = FileType.图片):
+    async def reply_media(self, file_or_url: str | FileInfo, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片):
         """ 回复群消息、事件 """
         source_id = self._to_id(payload)
         if isinstance(file_or_url, str):
             file_or_url = await self.file(source_id, file_or_url, file_type)
-        return await self._post_source(f"/{source_id}/messages", data={
-            "content": content,
-            "media": file_or_url,
-            **self._message_type_data(MessageType.Media),  # TODO 其它消息类型
-            **self._reply_id(payload)
-        })
+        return await self._post_source(f"/{source_id}/messages", data=self._message_data(
+            content=content,
+            media=file_or_url,
+            payload=payload,
+            type=MessageType.Media,  # TODO 其它消息类型
+        ))
 
 class ChannelAPI(UnifiedAPI):
 
@@ -126,8 +158,8 @@ class ChannelAPI(UnifiedAPI):
         return super()._to_id(payload)
 
     @staticmethod
-    def _message_type_data(_type: MessageType):
-        return {}  # channel 不用这个
+    def _message_type_data(data: dict, _type: MessageType):
+        return data  # channel 不用这个
     
     def _reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):
         if hasattr(message, "id"):
