@@ -71,7 +71,7 @@ class PrefixFilter(Filter):
         self.ignore_case = ignore_case
 
     def __call__(self) -> bool:
-        message = self.context.message.content.strip()
+        message = self.context.message.content.lstrip()
         if self.ignore_case:
             message = message.lower()
         self.context.matched << message
@@ -88,7 +88,7 @@ class SuffixFilter(Filter):
         self.ignore_case = ignore_case
 
     def __call__(self) -> bool:
-        message = self.context.message.content.strip()
+        message = self.context.message.content.rstrip()
         if self.ignore_case:
             message = message.lower()
         self.context.matched << message
