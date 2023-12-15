@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.bot import Bot
+    from mqga.q.payload import EventPayload
+    from mqga.q.api import FileInfo
+
+from mqga.q.constant import FileType
 
 from mqga.connection.api.client import APIClient
 from mqga.connection.api.source import ChannelAPI, GroupAPI, PrivateAPI
@@ -41,3 +45,18 @@ class API:
     def private(self):
         """ 私聊 api """
         return self._private_api
+
+    def of(self, payload: EventPayload):
+        """ 获取 payload 对应渠道的 api """
+        for source in (self._channel_api, self._group_api, self._private_api):
+            if source._payload_to_id(payload):
+                return source
+        raise ValueError(f"尚不支持把 {payload!r} 用于任何渠道的 api")
+
+    async def reply_text(self, content: str, payload: EventPayload):
+        """ 以文本回复消息、事件 """
+        return await self.of(payload).reply_text(content, payload)
+
+    async def reply_media(self, file_or_url: str | FileInfo, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片):
+        """ 以富媒体（图文等）回复消息、事件 """
+        return await self.of(payload).reply_media(file_or_url, payload, content, file_type)
