@@ -153,7 +153,7 @@ class APIClient:
     #     end = self.bot._ended
     #     try:
     #         while not end.is_set():
-    #             async with self._new_client():  # 在 token 有效期间保持 client 对象  TODO: 效果待验证
+    #             async with self._new_client():  # 在 token 有效期间保持 client 对象    效果待验证
     #                 await asyncio.sleep(self._sleep_time)
 
     #                 await self._token_task

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TypeVar, Generic, Iterable, AsyncGenerator
+from typing import TypeVar, Generic, Iterable, AsyncGenerator, Callable
+
 from abc import ABCMeta, abstractmethod
 
 from collections import deque, defaultdict
@@ -43,7 +44,7 @@ class Event(Generic[Params, ReturnT], metaclass=ABCMeta):
         raise NotImplementedError
         yield
 
-    async def emit(self, *args: Params.args, **kw: Params.kwargs):
+    async def emit(self, *args: Params.args, **kw: Params.kwargs) -> list[ReturnT]:
         return [r async for r in self._emit_gen(*args, **kw)]
     
     def _error(self, e: Exception):
@@ -120,6 +121,105 @@ class SingleEvent(Event[Params, ReturnT]):
             return
         
         yield r
+
+PairLeft = TypeVar("PairLeft")
+PairRight = TypeVar("PairRight")
+Pair = tuple[PairLeft, PairRight]
+# class Pair(tuple[PairLeft, PairRight]):
+
+#     def __new__(cls, left: PairLeft, right: PairRight):
+#         return super().__new__(cls, (left, right))
+
+#     @property
+#     def left(self) -> PairLeft:
+#         return self[0]
+
+#     @property
+#     def right(self) -> PairRight:
+#         return self[1]
+
+#     def __repr__(self):
+#         return f"{self.__class__.__name__}({self.left!r}, {self.right!r})"
+
+RuleT = TypeVar("RuleT")
+
+class RuleEvent(Generic[RuleT, Params, ReturnT], Event[Params, ReturnT]):
+    """ 附带规则的事件 """
+
+    @property
+    @abstractmethod
+    def callbacks(self) -> Iterable[Pair[RuleT | Callable[[RuleT], bool], Box[Params, ReturnT]]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def register(self, rule: RuleT | Callable[[RuleT], bool], callback: Box[Params, ReturnT]) -> None:
+        raise NotImplementedError
+    
+    @abstractmethod
+    def unregister(self, rule: RuleT | Callable[[RuleT], bool] | None, callback: Box[Params, ReturnT] | None) -> bool:
+        raise NotImplementedError
+    
+    @abstractmethod
+    async def _emit_gen(self, rule_arg: RuleT, *args: Params.args, **kw: Params.kwargs) -> AsyncGenerator[ReturnT, None]:
+        raise NotImplementedError
+        yield
+    
+    async def emit(self, rule_arg: RuleT, *args: Params.args, **kw: Params.kwargs) -> list[ReturnT]:
+        return [r async for r in self._emit_gen(rule_arg, *args, **kw)]
+
+class RuleMultiEvent(RuleEvent[RuleT, Params, ReturnT]):
+    """ 根据规则触发一组回调的事件 """
+
+    def __init__(self, name=""):
+        super().__init__(name)
+        self._callbacks: deque[Pair[RuleT | Callable[[RuleT], bool], Box[Params, ReturnT]]] | None = None
+
+    @property
+    def callbacks(self):
+        if self._callbacks is None:
+            self._callbacks = deque()
+        return self._callbacks
+
+    def register(self, rule: RuleT | Callable[[RuleT], bool], callback: Box[Params, ReturnT]) -> None:
+        self.callbacks.append((rule, callback))
+
+    def unregister(self, rule: RuleT | Callable[[RuleT], bool] | None, callback: Box[Params, ReturnT] | None) -> bool:
+        """ 查找并移除 (rule, callback)。rule 和 callback 的其一可以为 None，届时将先遍历查找对应的另一项，之后再移除 """
+        if not self._callbacks:
+           return False
+        pair = None
+        if rule is None:
+            any(pair := p for p in self.callbacks if p[1] is callback)
+        elif callback is None:
+            any(pair := p for p in self.callbacks if p[0] == rule)
+        else:
+            pair = (rule, callback)
+        try:
+            self.callbacks.remove(pair)
+            return True
+        except ValueError:
+            return False
+
+    def _is_accept(self, rule: RuleT | Callable[[RuleT], bool], rule_arg: RuleT):
+        return rule == rule_arg or rule(rule_arg) if callable(rule) else False
+
+    def _emit_coros(self, rule_arg: RuleT, *args: Params.args, **kw: Params.kwargs):
+        for rule, call in self.callbacks:
+            if self._is_accept(rule, rule_arg):
+                # yield call(*args, **kw)
+                yield asyncio.create_task(call(*args, **kw))  # 这样在 _is_accept 里面可以设置一些 context 的值
+
+    async def _emit_gen(self, rule_arg: RuleT, *args: Params.args, **kw: Params.kwargs) -> AsyncGenerator[ReturnT, None]:
+        if not self._callbacks:
+           return
+        
+        coros = self._emit_coros(rule_arg, *args, **kw)
+        results: list[ReturnT | Exception] = await asyncio.gather(*coros, return_exceptions=True)
+        for r in results:
+            if isinstance(r, Exception):
+                self._error(r)
+            else:
+                yield r
 
 class EventGroup(Event[Params, ReturnT]):
     """ 事件组，触发多个事件 """

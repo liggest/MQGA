@@ -9,12 +9,12 @@ import re
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.event.manager import Manager
-    from mqga.event.space import MessageSpace
     from mqga.q.message import Message
 
 from mqga.log import log
-from mqga.event.event import Box, Params, ReturnT, Event, StrEvent
+from mqga.event.event import Box, Params, ReturnT, Event
 # from mqga.event.event import PlainReturns
+from mqga.event.space import MessageSpace
 from mqga.q.constant import EventType, OpCode
 from mqga.q.constant import Intents, EventType2Intent
 from mqga.q.message import Emoji
@@ -66,7 +66,7 @@ class Dispatcher(Generic[T, Params, ReturnT]):
 class EventDispatcher(Dispatcher[Event[Params, ReturnT], Params, ReturnT]):
 
     # async def is_accept(self, bot, target) -> bool:
-    #     # TODO
+    #     
     #     raise NotImplementedError
 
     # async def _pre_dispatch(self, bot, target):
@@ -185,7 +185,7 @@ class EventPayloadDispatcher(PayloadDispatcher[EventPayloadT, ReturnT]):
             log.warning(f"{subcls!r} 覆盖了 {old_sub!r}")
         subcls._subs[subcls._type] = subcls
 
-# TODO 改进写法
+
 class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     
     # def __init__(self, manager: Manager):
@@ -221,31 +221,35 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
         # events = self._message_event._full_match_events
         # events = bot._em.events._message_full_match_dict
         events = space._full_match_dict
-        if events and (event := events.get(message.content)):
+        if events and (event := events.get(message.content.strip())):
             return await event.emit()
 
     async def regex_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._regex_events
         # events = bot._em.events.message_regex
-        events = space.regex
-        if events:
-            coros = (event.emit() for pattern, event in events if pattern.search(message.content))
-            return self.flatten(await asyncio.gather(*coros))
+        # events = space.regex
+        # if events:
+        #     coros = (event.emit() for pattern, event in events if pattern.search(message.content))
+        #     return self.flatten(await asyncio.gather(*coros))
+        if event := MessageSpace.regex.get_in(space):
+            return await event.emit(message.content)
 
     async def filter_emit(self, space: MessageSpace, message: Message):
         # events = self._message_event._filter_events
         # events = bot._em.events.message_filter_by
-        events = space.filter_by
-        if events:
-            coros = (event.emit() for is_accept, event in events if is_accept())
-            return self.flatten(await asyncio.gather(*coros))
+        # events = space.filter_by
+        # if events:
+        #     coros = (event.emit() for is_accept, event in events if is_accept())
+        #     return self.flatten(await asyncio.gather(*coros))
+        if event := MessageSpace.filter_by.get_in(space):
+            return await event.emit(None)
 
     async def message_emit(self, space: MessageSpace, message: Message):
         # event = self._message_event
         # event = bot._em.events.message
-        event = space.any
         # if not (event._full_match_events and event._regex_events and event._filter_events):
-        return await event.emit()
+        if event := MessageSpace.any.get_in(space):
+            return await event.emit()
 
     async def _handle_emit(self, result, bot: Bot, target: MessageEventPayloadT):
         if isinstance(result, str):
@@ -271,17 +275,19 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     def register_full_match(self, box: Box, bot: Bot, content: str):
         self._message_space(bot).full_match(content).register(box)
 
-    def register_regex(self, box: Box, bot: Bot, content: str):
+    def register_regex(self, box: Box, bot: Bot, content: str, flags: re._FlagsType = 0):
         space = self._message_space(bot)
-        event = StrEvent(f"{space.source}_message_regex_{content!r}")
-        event.register(box)
-        space.regex.append((re.compile(content), event))
+        space.regex.register(re.compile(content, flags), box)
+        # event = StrEvent(f"{space.source}_message_regex_{content!r}")
+        # event.register(box)
+        # space.regex.append((re.compile(content), event))
 
     def register_filter_by(self, box: Box, bot: Bot, filter: Callable[[], bool]):
         space = self._message_space(bot)
-        event = StrEvent(f"{space.source}_message_filter_by_{filter!r}")
-        event.register(box)
-        space.filter_by.append((filter, event))
+        space.filter_by.register(filter, box)
+        # event = StrEvent(f"{space.source}_message_filter_by_{filter!r}")
+        # event.register(box)
+        # space.filter_by.append((filter, event))
 
 class ChannelAtMessageDispatcher(
     MessageDispatcher[ChannelAtMessageEventPayload]
@@ -301,6 +307,10 @@ class ChannelAtMessageDispatcher(
     # async def _handle_emit(self, result, bot, target):
     #     return await bot._api.channel_reply(result, target)
 
+    async def _pre_dispatch(self, bot: Bot, target: ChannelAtMessageEventPayload):
+        target.data.content = target.data.content.removeprefix(f"<@!{bot.user.id}>")  # 消掉 @bot
+        await super()._pre_dispatch(bot, target)
+
     async def _reply_str(self, content, bot, payload):
         return await bot._api.channel.reply_text(content, payload)
 
@@ -314,7 +324,7 @@ class ChannelAtMessageDispatcher(
         
     #     return True
 
-# TODO 改进写法
+
 class GroupAtMessageDispatcher(
     MessageDispatcher[GroupAtMessageEventPayload]
 ):
@@ -325,7 +335,7 @@ class GroupAtMessageDispatcher(
     async def _reply_str(self, content, bot, payload):
         return await bot._api.group.reply_text(content, payload)
 
-# TODO 改进写法
+
 class PrivateMessageDispatcher(
     MessageDispatcher[PrivateMessageEventPayload]
 ):
@@ -336,7 +346,7 @@ class PrivateMessageDispatcher(
     async def _reply_str(self, content, bot, payload):
         return await bot._api.private.reply_text(content, payload)
 
-# TODO 改进写法
+
 class ChannelMessageReactionAddDispatcher(
     EventPayloadDispatcher[ChannelMessageReactionAddEventPayload, Emoji]
 ):
@@ -346,7 +356,7 @@ class ChannelMessageReactionAddDispatcher(
             return await bot._api.channel.reaction(target.data, result)
         return await super()._handle_emit(result, bot, target)
 
-# TODO 改进写法
+
 class ChannelMessageReactionRemoveDispatcher(
     EventPayloadDispatcher[ChannelMessageReactionRemoveEventPayload, Emoji]
 ):
@@ -357,7 +367,7 @@ class ChannelMessageReactionRemoveDispatcher(
         return await super()._handle_emit(result, bot, target)
 
 def event_dispatcher_cls(payload_cls: type[Payload]):
-    """ 从 payload_type 动态创建 Dispatcher """
+    """ 从 payload_cls 动态创建 Dispatcher """
     fileds = globals()
     if issubclass(payload_cls, EventPayload):
         name = f"{event_type_from(payload_cls).name}Dispatcher"

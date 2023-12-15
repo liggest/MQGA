@@ -40,7 +40,7 @@ class WSInner:
     def __init__(self, ws: WS):
         self.ws = ws
         self._last_seq_no = 0
-        # self.intents = Intents.DEFAULT | Intents.GUILD_MESSAGE_REACTIONS  # TODO 测试用
+        # self.intents = Intents.DEFAULT | Intents.GUILD_MESSAGE_REACTIONS  # 测试用
         self.intents = ws.bot.intents
         log.info(f"当前接收意向：{self.intents!r}")
         self.state = WSState.Closed

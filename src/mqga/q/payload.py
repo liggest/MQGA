@@ -53,6 +53,9 @@ class EventPayload(Payload):
     data: dict
     """ 事件数据 """
 
+    def __hash__(self) -> int:
+        return hash((self.type, self.seq_no))
+
 # class UserData(BaseModel):
 #     id: str
 #     username: str
@@ -111,13 +114,22 @@ class ChannelAtMessageEventPayload(EventPayload):
     type: Literal[EventType.ChannelAtMessageCreate] = EventType.ChannelAtMessageCreate
     data: ChannelMessage
 
+    def __hash__(self) -> int:
+        return hash(self.data)  # 用 Message 的 id 做 hash
+
 class GroupAtMessageEventPayload(EventPayload):
     type: Literal[EventType.GroupAtMessageCreate] = EventType.GroupAtMessageCreate
     data: GroupMessage
 
+    def __hash__(self) -> int:
+        return hash(self.data)  # 用 Message 的 id 做 hash
+
 class PrivateMessageEventPayload(EventPayload):
     type: Literal[EventType.PrivateMessageCreate] = EventType.PrivateMessageCreate
     data: PrivateMessage
+
+    def __hash__(self) -> int:
+        return hash(self.data)  # 用 Message 的 id 做 hash
 
 class ChannelMessageReactionAddEventPayload(EventPayload):
     type: Literal[EventType.ChannelMessageReactionAdd] = EventType.ChannelMessageReactionAdd
@@ -159,7 +171,7 @@ EventPayloadWithChannelID = (ChannelAtMessageEventPayload
 
 def _event_payloads() -> type[ReadyEventPayload] | type[ResumedEventPayload] | type[EventPayload]:
     return Annotated[
-        reduce(operator.or_, EventPayload.__subclasses__()),  # TODO 目前只支持 EventPayload 的直接子类
+        reduce(operator.or_, EventPayload.__subclasses__()),  # 目前只支持 EventPayload 的直接子类
         Field(discriminator="type")
     ]
 

@@ -5,6 +5,7 @@ from typing import Callable, TypeVar, TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.event.manager import EventDispatcherType
     from mqga.bot import Bot
+    import re
 
 T = TypeVar("T", bound=Callable)
 
@@ -80,12 +81,12 @@ class OnMessage:
             return func
         return inner
     
-    def regex(self, content: str):
+    def regex(self, content: str, flags: re._FlagsType = 0):
         def inner(func: Callable[[], str]):
             # context, box, dispatcher = self._deco_init_dispatcher(func)
             bot, box = _deco_init(func)
             for dispatcher in self._sources(bot):
-                dispatcher.register_regex(box, bot, content)
+                dispatcher.register_regex(box, bot, content, flags)
             # event = StrEvent(f"message_regex_{content!r}")
             # event.register(box)
             # context.bot._em.events.message_regex.append((re.compile(content), event))

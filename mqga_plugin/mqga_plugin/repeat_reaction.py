@@ -15,7 +15,7 @@ async def add_reaction():
     if bot.user and bot.user.id != data.user_id:
         log.debug(f"有消息被贴了表情：{data!r}")
         if all(bot.user.id != user.id for user in 
-                await bot._api.channel.reaction_get_head_users(data, data.emoji)):
+                await bot.api.channel.reaction_get_head_users(data, data.emoji)):
             log.debug("自己也贴个表情…")
             return data.emoji
     else:
@@ -29,8 +29,8 @@ async def remove_reaction():
     if bot.user and bot.user.id != data.user_id:
         log.debug(f"有消息被揭了表情：{data!r}")
         if any(bot.user.id == user.id for user in 
-                await bot._api.channel.reaction_get_head_users(data, data.emoji)):
+                await bot.api.channel.reaction_get_head_users(data, data.emoji)):
             log.debug("也揭掉自己贴的表情…")
-            await bot._api.channel.reaction_delete(data, data.emoji)
+            await bot.api.channel.reaction_delete(data, data.emoji)
     else:
         log.debug(f"自己的表情被揭了：{data!r}")

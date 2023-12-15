@@ -1,5 +1,5 @@
 
-from mqga import group_context as ctx, on_message, channel_only, group_only
+from mqga import context as ctx, on_message, channel_only, group_only
 from mqga import on_event, EventType
 from mqga.log import log
 
@@ -31,16 +31,53 @@ with channel_only:
 with group_only:
 
     @on_message.full_match("$")
+    @on_message.full_match("$")
+    @on_message.full_match("$")
     def dollar():
         return "🉑"
 
+@on_message.filter_by(lambda: (ctx.matched << ctx.message.content.strip().lower()).startswith("/img"))
+async def img():
+    cmd: str = ctx.matched.filter_by[0]
+    url = cmd.removeprefix("/img").lstrip()
+    # file = await ctx.bot.api.group.file(ctx.in_group.message.group_id, url)
+    # log.debug(f"FileInfo: {file!r}")
+    # return ctx.bot.api.group.reply_media(file, ctx.payload)
+    return ctx.bot.api.reply_media(url, ctx.payload)
 
-    @on_message.filter_by(lambda: ctx.message.content.strip().lower().startswith("/img"))
-    async def img():
-        url = ctx.message.content.strip().lower().removeprefix("/img")
-        file = await ctx.bot._api.group.file(ctx.message.group_id, url)
-        log.debug(f"FileInfo: {file!r}")
-        await ctx.bot._api.group.reply_media(f"FileInfo: {file!r}", file, ctx.payload)
+@on_message.regex(r"[/]?(lr|左右)\s*(?P<left>\S+)?\s*(?P<right>\S+)?")
+async def lr():
+    match = ctx.matched.regex
+    left, right = match.group('left'), match.group('right')
+    return f"{left = !r}  {right = !r}"
+
+@on_message.full_match(r"数数")
+def count():
+    import asyncio
+    async def _do_count():
+        reply = ctx.bot.api.of(ctx.payload).reply_text
+        for i in range(10):
+            await reply(str(i), ctx.payload)
+            await asyncio.sleep(1)
+    return _do_count()
+
+bite_to = None
+
+@on_message.full_match(r"咬住")
+def bite():
+    global bite_to
+    if not bite_to:
+        bite_to = ctx.payload
+        
+    async def _do_bite():
+        global bite_to
+        from mqga.connection.api.client import APIError
+        try:
+            await ctx.bot.api.reply_text("汪汪汪", bite_to)
+        except APIError:
+            bite_to = None
+    
+    return _do_bite()
 
 from mqga.plugin import plugin_info
 

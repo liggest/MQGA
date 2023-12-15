@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from weakref import WeakKeyDictionary
+
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mqga.connection.api.client import APIClient
     from mqga.q.message import IDUser
     from mqga.q.message import Emoji, ChannelAndMessageID
     from mqga.q.api import WSURL
-    from mqga.q.api import FileInfo
+    from mqga.q.api import FileInfo, RepliedMessage
 
-from mqga.q.message import Message
+from mqga.log import log
+from mqga.q.message import Message, ChannelMessage
 from mqga.q.message import User
 from mqga.q.constant import MessageType, FileType
 from mqga.q.payload import EventPayload
@@ -61,30 +65,66 @@ class UnifiedAPI:
         rj: WSURL = await self._get("/gateway")
         return rj["url"]
 
+    @staticmethod
+    def _payload_to_id(payload: EventPayload) -> str | None:
+        """ 从 payload 中获取当前渠道的 id """
+        return None
+
     @classmethod
     def _to_id(cls, payload: EventPayload | str) -> str:
-        """ 从 payload 中获取当前渠道的 id """
-        if isinstance(payload, str):
+        if isinstance(payload, EventPayload) and (_id := cls._payload_to_id(payload)):
+            return _id 
+        elif isinstance(payload, str):
             return payload
         raise NotImplementedError(f"尚未实现将 {payload!r} 转换为 {cls.__name__} 的 id")
 
-    @staticmethod
-    def _message_type_data(_type: MessageType):
-        return {"msg_type": _type}
+    @classmethod
+    def _message_data(cls, content: str, payload: EventPayload, type: MessageType, media: FileInfo = None, _sequence = 1):
+        data = {"content": content}
+        cls._message_type_data(data, type)
+        cls._reply_id_data(data, payload)
+        cls._message_media_data(data, media)
+        cls._message_sequence_data(data, payload, _sequence)
+        return data
 
     @staticmethod
-    def _reply_id(payload: EventPayload):
+    def _message_type_data(data: dict, _type: MessageType):
+        data["msg_type"] = _type
+        return data
+
+    @staticmethod
+    def _reply_id_data(data: dict, payload: EventPayload):  # TODO 确定所有能回复的 payload 类型
         if isinstance(payload.data, Message):
-            return {"msg_id": payload.data.id}
-        return {"event_id": payload.type}  # TODO event_id
+            data["msg_id"] = payload.data.id
+        else:
+            data["event_id"] = payload.type
+        return data
 
-    async def reply_text(self, content: str, payload: EventPayload):
+    @staticmethod
+    def _message_media_data(data: dict, media: FileInfo = None):
+        if media:
+            data["media"] = media
+        return data
+
+    _sequences: WeakKeyDictionary[EventPayload, int] = WeakKeyDictionary()
+
+    @classmethod
+    def _message_sequence_data(cls, data: dict, payload: EventPayload, _sequence = 1):
+        """ 缓存对当前 payload 发过消息的次数（+1） """
+        _sequence = cls._sequences.get(payload, _sequence)
+        # log.debug(f"[{len(cls._sequences)}] {id(payload)}  {getattr(payload.data, 'content')}  {_sequence = }")
+        if _sequence != 1:
+            data["msg_seq"] = _sequence
+        cls._sequences[payload] = _sequence + 1
+        return data
+
+    async def reply_text(self, content: str, payload: EventPayload) -> RepliedMessage:
         """ 以文本回复消息、事件 """
-        return await self._post_source(f"/{self._to_id(payload)}/messages", data={
-            "content": content,
-            **self._message_type_data(MessageType.Text),  # TODO 其它消息类型
-            **self._reply_id(payload)
-        })
+        return await self._post_source(f"/{self._to_id(payload)}/messages", data=self._message_data(
+            content=content,
+            payload=payload,
+            type=MessageType.Text,  # TODO 其它消息类型
+        ))
 
     async def file(self, payload_or_id: EventPayload | str, url: str, file_type: FileType = FileType.图片, send=False) -> FileInfo:
         """ 
@@ -102,43 +142,61 @@ class UnifiedAPI:
             # "file_data":  暂未支持
         })
 
-    async def reply_media(self, content: str, file_or_url: str | FileInfo, payload: EventPayload, file_type: FileType = FileType.图片):
-        """ 回复群消息、事件 """
+    async def reply_media(self, file_or_url: str | FileInfo, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片) -> RepliedMessage:
+        """ 以富媒体（图文等）回复消息、事件 """
         source_id = self._to_id(payload)
         if isinstance(file_or_url, str):
             file_or_url = await self.file(source_id, file_or_url, file_type)
-        return await self._post_source(f"/{source_id}/messages", data={
-            "content": content,
-            "media": file_or_url,
-            **self._message_type_data(MessageType.Media),  # TODO 其它消息类型
-            **self._reply_id(payload)
-        })
+        return await self._post_source(f"/{source_id}/messages", data=self._message_data(
+            content=content,
+            media=file_or_url,
+            payload=payload,
+            type=MessageType.Media,  # TODO 其它消息类型
+        ))
 
 class ChannelAPI(UnifiedAPI):
 
     Prefix = "/channels"
 
-    @classmethod
-    def _to_id(cls, payload: EventPayload | str) -> str:
+    @staticmethod
+    def _payload_to_id(payload):
         """ 从 payload 中获取频道 id """
-        if isinstance(payload, EventPayload) and (channel_id := getattr(payload.data, "channel_id", None)):
-            return channel_id
-        return super()._to_id(payload)
+        return getattr(payload.data, "channel_id", None)
 
     @staticmethod
-    def _message_type_data(_type: MessageType):
-        return {}  # channel 不用这个
+    def _message_type_data(data: dict, _type: MessageType):
+        return data  # channel 不用这个
     
+    @classmethod
+    def _reply_id_data(cls, data: dict, payload: EventPayload):
+        data = super()._reply_id_data(data, payload)
+        if "msg_id" not in data:
+            log.warning(f"{payload!r} 未能为 {data!r} 提供消息 ID，可能导致消息按主动消息而非回复消息发送")
+        return data
+
+    async def reply_text(self, content: str, payload: EventPayload):
+        return ChannelMessage(**await super().reply_text(content, payload))
+
+    async def reply_media(self, file_or_url: str, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片):
+        """ 
+            以图文回复消息、事件 
+            
+            频道中 file_or_url 只能是 url(`str`)， file_type 固定为 FileType.图片
+        """
+        data = {"content": content, "image": file_or_url}
+        self._reply_id_data(data, payload)
+        return ChannelMessage(**await self._post_source(f"/{self._to_id(payload)}/messages", data=data))
+
     def _reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):
         if hasattr(message, "id"):
             return f"/{message.channel_id}/messages/{message.id}/reactions/{emoji.type}/{emoji.id}"
         return f"/{message.channel_id}/messages/{message.target.id}/reactions/{emoji.type}/{emoji.id}"
 
-    async def reaction(self, message: ChannelAndMessageID, emoji: Emoji):
+    async def reaction(self, message: ChannelAndMessageID, emoji: Emoji) -> bool:
         """ 对频道消息贴表情 """
         return await self._put_source(self._reaction_url(message, emoji))
 
-    async def reaction_delete(self, message: ChannelAndMessageID, emoji: Emoji):
+    async def reaction_delete(self, message: ChannelAndMessageID, emoji: Emoji) -> bool:
         """ 对频道消息揭表情 """
         return await self._delete_source(self._reaction_url(message, emoji))
 
@@ -164,21 +222,17 @@ class GroupAPI(UnifiedAPI):
 
     Prefix = "/v2/groups"
 
-    @classmethod
-    def _to_id(cls, payload: EventPayload | str) -> str:
+    @staticmethod
+    def _payload_to_id(payload):
         """ 从 payload 中获取群 id """
-        if isinstance(payload, EventPayload) and (group_id := getattr(payload.data, "group_id", None)):
-            return group_id
-        return super()._to_id(payload)
+        return getattr(payload.data, "group_id", None)
 
 class PrivateAPI(UnifiedAPI):
 
     Prefix = "/v2/users"
 
-    @classmethod
-    def _to_id(cls, payload: EventPayload | str) -> str:
+    @staticmethod
+    def _payload_to_id(payload):
         """ 从 payload 中获取用户 id """
-        if isinstance(payload, EventPayload) and (user := getattr(payload.data, "author", None)):
-            user: IDUser
-            return user.id
-        return super()._to_id(payload)
+        user: IDUser | None = getattr(payload.data, "author", None)
+        return user and user.id

@@ -100,7 +100,7 @@ class Member(BaseModel):
     """ 用户信息 """
     nick: str
     """ 用户昵称 """
-    roles: list[RoleID | str] # TODO
+    roles: list[RoleID | str] # TODO 等文档更新后更新 RoleID
     """ 身份组 ID 列表 """
     joined_at: datetime
     """ 加入时间 """
@@ -155,6 +155,9 @@ class Message(BaseModel):
     """ 消息创建时间 """
     attachments: list[UrlAttachment] | None = None
     """ 附件列表 """
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
 # class Message(BaseModel):
 #     """ 消息 """
