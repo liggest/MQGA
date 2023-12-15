@@ -307,6 +307,10 @@ class ChannelAtMessageDispatcher(
     # async def _handle_emit(self, result, bot, target):
     #     return await bot._api.channel_reply(result, target)
 
+    async def _pre_dispatch(self, bot: Bot, target: ChannelAtMessageEventPayload):
+        target.data.content = target.data.content.removeprefix(f"<@!{bot.user.id}>")  # 消掉 @bot
+        await super()._pre_dispatch(bot, target)
+
     async def _reply_str(self, content, bot, payload):
         return await bot._api.channel.reply_text(content, payload)
 
