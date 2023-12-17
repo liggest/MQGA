@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import cached_property
 import asyncio
 import time
+import json
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -113,7 +114,12 @@ class APIClient:
             http_error = e
         if response.status_code == 204: # 无数据
             return True
-        data: dict = response.json()
+        try:
+            data: dict = response.json()
+        except json.JSONDecodeError as e:
+            if http_error:
+                raise http_error # json 解析不出来的情况下，如果有 http_error 就先报出来
+            raise e  # json 解析出错
         if (data and ("code" in data or "ret" in data)):
             if http_error:
                 raise APIError(data) from http_error

@@ -20,6 +20,9 @@ class PluginModule(types.ModuleType):
     def __repr__(self):
         return f"<PluginModule {self.name!r}>"
     
+    def __dir__(self):  # 为 dir(PluginModule()) 补充 name、path 等来自 PluginModule 的项
+        return [*super().__dir__(), *(name for name in dir(self.__class__) if not name.startswith("_"))]
+
     @property
     def path(self):
         """ 插件路径 """
