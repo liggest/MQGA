@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 
 from mqga.log import log
-from mqga.plugin.module import PluginModule
+from mqga.plugin.module import PluginModule, _to_plugin_module
 
-def load(root: Path | None = None) -> dict[str, ModuleType]:
+def load(root: Path | None = None) -> dict[str, PluginModule]:
     """ 加载所有识别到的插件 """
     if root:  # 提供 Path 则从 Path 中加载
         return load_all(root)
@@ -17,7 +17,7 @@ def load(root: Path | None = None) -> dict[str, ModuleType]:
         return load_all()  # 没安装 mqga_plugin ，从默认路径加载
     return load_all(Path(mqga_plugin.__file__).parent)  # 从 mqga_plugin 中加载
 
-def load_all(root = Path("./mqga_plugin/mqga_plugin")) -> dict[str, ModuleType]:
+def load_all(root = Path("./mqga_plugin/mqga_plugin")) -> dict[str, PluginModule]:
     """ 加载 root 中的所有插件 """
     # if not (root / "__init__.py").exists():
     #     raise ValueError(f"请在 {root!r} 中创建 __init__.py，使其变成一个 Python 包")
@@ -32,12 +32,10 @@ def load_all(root = Path("./mqga_plugin/mqga_plugin")) -> dict[str, ModuleType]:
         if path.suffix.endswith(".py") or (path.is_dir() and (path / "__init__.py").exists()):
             try:
                 plugin = load_one(root, path)
-                if isinstance(plugin, PluginModule):
-                    plugin_name = plugin.name
-                else:  # TODO 让插件拥有默认的 PluginModule 子类
-                    plugin_name = path.name
+                if not isinstance(plugin, PluginModule):
+                    plugin = _to_plugin_module(plugin, path)  # TODO 让插件拥有默认的 PluginModule 子类
                 plugins[path.name] = plugin
-                log.info(f"插件 {plugin_name} 加载成功~")
+                log.info(f"插件 {plugin.name} 加载成功~")
             except Exception as e:
                 log.exception(f"插件 {path.as_posix()} 加载失败！", exc_info=e)
     if sys.path and sys.path[0] is parent_abs:

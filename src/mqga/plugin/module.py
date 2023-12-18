@@ -3,7 +3,14 @@ import types
 import inspect
 from pathlib import Path
 
-class PluginModule(types.ModuleType):
+from mqga.log import log
+
+class PluginModuleMeta(type):
+
+    def __del__(self):
+        log.debug(f"PluginModuleMeta.__del__  {self!r} 使命结束")
+
+class PluginModule(types.ModuleType, metaclass=PluginModuleMeta):
     
     name = "plugin"
     """ 插件名称 """
@@ -11,7 +18,7 @@ class PluginModule(types.ModuleType):
     author = ""
     """ 插件作者 """
 
-    version = ""
+    version = "0.0.1"
     """ 插件版本 """
     
     description = "一般 MQGA 插件"
@@ -22,6 +29,9 @@ class PluginModule(types.ModuleType):
     
     def __dir__(self):  # 为 dir(PluginModule()) 补充 name、path 等来自 PluginModule 的项
         return [*super().__dir__(), *(name for name in dir(self.__class__) if not name.startswith("_"))]
+
+    def __del__(self):
+        log.debug(f"PluginModule.__del__  {self!r} 使命结束")
 
     @property
     def path(self):
@@ -34,12 +44,13 @@ class PluginModule(types.ModuleType):
         return Path(f"./data/{self.path.stem}")
     
 def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA 插件"):
-    """ 设置插件"信息 """
+    """ 设置插件信息 """
     frame = inspect.currentframe() # 找到调用函数所在的模块
     while not frame.f_code.co_name == "<module>":
         frame = frame.f_back
     path = Path(frame.f_code.co_filename)
-    while path.parent.name != "mqga_plugin":
+    while (parent_name := path.parent.name) and parent_name != "mqga_plugin":
+        # path 为 "/" 或 "." 时 path.name = ""，防止死循环
         path = path.parent
     file_name = path.name.removesuffix(".py")
     name = name or file_name  # 没有名字的话用文件名
@@ -52,5 +63,16 @@ def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA �
         namespace["version"] = version
         namespace["description"] = description
 
-    cls = sys.modules[module_name].__class__ = types.new_class(class_name, (PluginModule,), {}, class_body)
+    cls = sys.modules[module_name].__class__ = types.new_class(class_name, (PluginModule,), exec_body=class_body)
     return cls
+
+def _to_plugin_module(module: types.ModuleType, path: Path):
+    """ 将 module 转换为默认名称的插件模块 """
+    name = path.name.removesuffix(".py")
+    class_name = f"{name.capitalize()}PluginModule"
+
+    def class_body(namespace: dict):
+        namespace["name"] = name
+
+    module.__class__ = types.new_class(class_name, (PluginModule,), exec_body=class_body)
+    return module
