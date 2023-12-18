@@ -12,7 +12,7 @@ from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
 @on_message.regex(r"^\s*/statecheat\s*(.+)$")
-async def state():
+async def state_cheat():
     group_state = group_game_state_manager
 
     message = ctx.message
