@@ -23,7 +23,6 @@ async def plug():
         log.error(f"我不在群里，也不在频道里，那我在哪？")
     state = group_state.get_group_state(id)
 
-    log.info("让我康康")
     if state is GameState.DISCONNECTED:
             content =   '对喔！通往外部和其他计算机的网线都还没有插上呢，可是网线被搞丢了QAQ\n' \
                         '根据以下线索寻找网线：\n' \
@@ -50,8 +49,8 @@ async def plug():
 
     match = ctx.matched.regex
     info = match.group(1)
-    log.info("让我康康")
-    log.info(info)
+    # log.info("让我康康")
+    # log.info(info)
     if state is not GameState.DISCONNECTED:
         content = "网线已经插好啦！"
         return content

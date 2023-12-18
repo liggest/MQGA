@@ -1,20 +1,20 @@
 from mqga.plugin import plugin_info
 from mqga_plugin.game_state_manager import group_game_state_manager, GameState
-from mqga_plugin.lan_game_manager import LAN_game_manager
 
 plugin_info(
-    name="login",
+    name="wireless",
     author="duolanda",
     version="0.0.1",
-    description="输入密码，成功后进入互联网阶段",
+    description="开启无线网，进入互联网阶段"
 )
 from mqga import group_context as ctx, on_message
 from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
-@on_message.regex(r"^\s*/login\s*(.+)$")
-async def ping():
+@on_message.full_match(r"/wireless")
+async def wireless():
     group_state = group_game_state_manager
+
     message = ctx.message
     if isinstance(message, ChannelMessage):
         id = message.channel_id
@@ -22,12 +22,9 @@ async def ping():
         id = message.group_id
     else:
         log.error(f"我不在群里，也不在频道里，那我在哪？")
+
     state = group_state.get_group_state(id)
 
-    match = ctx.matched.regex
-    info = match.group(1)
-    # log.info("让我康康")
-    # log.info(info)
     if state is GameState.DISCONNECTED:
         content =   '-&gt;网络数据_疑似获取_开始解析\n' \
                     '⌽⌀⌽�指令:/help\n' \
@@ -37,13 +34,12 @@ async def ping():
                     '你���可以忽悠此错�⌽⌽�误并尝␦⌀␦试使用␦/help（/说明书）来���'
         return content
     elif state is GameState.INTERNET or state is GameState.FULLSPEED:
-        content = '已经成功登录啦'
+        content = '无线网已经开启了'
         return content
     else:
-        game_manager = LAN_game_manager
-        if game_manager.can_login(id, info):
-            group_state.login_success(id)
-            content = '宽带密码输入正确！再输入 /wireless 开启无线网络吧！'
+        if group_game_state_manager.get_login_state(id) is False:
+            content = '宽带密码都还没输呢，先去破译破译密码无线网才有用'
         else:
-            content = '密码错误了喔，再好好想想吧'
+            content = '无线已开启，畅享互联网吧！'
+            group_game_state_manager.update_state(id, GameState.INTERNET)
         return content
