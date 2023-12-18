@@ -91,7 +91,7 @@ class LANGameManager:
 
     def can_login(self, group_id, password)->bool:
         """ 验证密码并更新状态 """
-        correct_password = self.group_passwords.get(group_id)
+        correct_password = self.group_passwords.get(group_id) #TODO:如果用户上来输入一个空，是不是也可以？
         if password == correct_password:
             return True
         else:
