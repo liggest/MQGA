@@ -2,6 +2,7 @@
 from mqga import on_message, context as ctx
 from mqga.event.filter import Filters
 from mqga.plugin.module import PluginModule
+from mqga.log import log
 
 @on_message.filter_by(Filters.prefix("/服务列表"))
 def service():
@@ -33,5 +34,5 @@ def plugin_list():
 
 @on_message.filter_by(Filters.command("/插件列表测试"))
 def plugin_test():
-    print(ctx.matched.filter_by)
+    log.debug(ctx.matched.filter_by)
     return "\n".join(plugin_list())
