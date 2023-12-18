@@ -97,7 +97,33 @@ class SuffixFilter(Filter):
     def __repr__(self) -> str:
         return f"{super().__repr__()}({self.suffix!r})"
 
+class CommandFilter(Filter):
+
+    prefix = "/"
+
+    def __init__(self, command: str, ignore_case = False, context: BotContext = None):
+        super().__init__(context)
+        self.name = command.lstrip(self.prefix)
+        self.ignore_case = ignore_case
+
+    def __call__(self) -> bool:
+        message = self.context.message.content.lstrip().lstrip(self.prefix)
+        if self.ignore_case:
+            message = message.lower()
+        if is_match := message.startswith(self.name):
+            message = message.removeprefix(self.name)
+        self.context.matched << message
+        return is_match
+
+    @property
+    def command(self):
+        return f"{self.prefix}{self.name}"
+
+    def __repr__(self) -> str:
+        return f"{super().__repr__()}({self.command!r})"
+
 class Filters:
 
     prefix = PrefixFilter
     suffix = SuffixFilter
+    command = CommandFilter
