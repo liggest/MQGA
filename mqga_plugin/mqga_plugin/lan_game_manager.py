@@ -75,6 +75,8 @@ class LANGameManager:
 
     def ping_ip(self, group_id, user_id, ip_address)->str:
         """ 根据IP地址返回结果 """
+        if ip_address == "255.255.255.255":
+            return self.clue_cheat(group_id)
         if ip_address in self.user_group_ips[group_id, user_id]:
             feature = self.ip_features[ip_address]
             if feature == IPFeature.CLUE:
@@ -141,5 +143,11 @@ class LANGameManager:
         """ 生成随机替换对 """
         a, b = random.sample(string.ascii_lowercase, 2)
         return (a, b)
+
+    def clue_cheat(self, group_id):
+        """ 一次性集齐所有线索，然后公布答案 """
+        while not self.group_passwords.get(group_id):
+            self.clue(group_id)
+        return f"真拿你没办法啊，当前密码：{self.group_passwords[group_id]}"
 
 LAN_game_manager = LANGameManager()

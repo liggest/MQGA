@@ -11,6 +11,7 @@ from mqga import group_context as ctx, on_message
 from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
+@on_message.full_match(r"/插网线")
 @on_message.full_match(r"/plug")
 async def plug_show():
     group_state = group_game_state_manager
@@ -35,6 +36,7 @@ async def plug_show():
         content = "网线已经插好啦！"
         return content
 
+@on_message.regex(r"^\s*/插网线\s*(.+)$")
 @on_message.regex(r"^\s*/plug\s*(.+)$")
 async def plug():
     group_state = group_game_state_manager

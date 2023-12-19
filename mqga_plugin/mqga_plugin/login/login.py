@@ -12,7 +12,8 @@ from mqga import group_context as ctx, on_message
 from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
-@on_message.regex(r"^\s*/login\s*(.+)$")
+@on_message.regex(r"^\s*/登录\s*(.*)$")
+@on_message.regex(r"^\s*/login\s*(.*)$")
 async def ping():
     group_state = group_game_state_manager
     message = ctx.message

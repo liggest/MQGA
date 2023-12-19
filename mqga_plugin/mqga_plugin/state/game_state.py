@@ -12,6 +12,7 @@ from mqga import group_context as ctx, on_message
 from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
+@on_message.full_match(r"/状态")
 @on_message.full_match(r"/state")
 async def game_state():
     group_state = group_game_state_manager

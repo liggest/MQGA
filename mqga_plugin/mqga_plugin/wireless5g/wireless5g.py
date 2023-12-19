@@ -11,7 +11,7 @@ from mqga import group_context as ctx, on_message
 from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
-@on_message.full_match(r"/wireless_5g")
+@on_message.regex(r"\s*/(wireless_|无线)5[gG]")
 async def wireless5g():
     group_state = group_game_state_manager
 
