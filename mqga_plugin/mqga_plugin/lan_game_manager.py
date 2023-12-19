@@ -3,7 +3,7 @@ import random
 import string
 from enum import Enum, auto
 
-from mqga import log
+from mqga.log import log 
 
 class IPFeature(Enum):
     """ IP功能 """
