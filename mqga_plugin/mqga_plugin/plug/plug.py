@@ -12,7 +12,7 @@ from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
 @on_message.full_match(r"/plug")
-async def plug():
+async def plug_show():
     group_state = group_game_state_manager
     message = ctx.message
     if isinstance(message, ChannelMessage):
@@ -20,7 +20,7 @@ async def plug():
     elif isinstance(message, GroupMessage):
         id = message.group_id
     else:
-        log.error(f"我不在群里，也不在频道里，那我在哪？")
+        log.error("我不在群里，也不在频道里，那我在哪？")
     state = group_state.get_group_state(id)
 
     if state is GameState.DISCONNECTED:
@@ -44,7 +44,7 @@ async def plug():
     elif isinstance(message, GroupMessage):
         id = message.group_id
     else:
-        log.error(f"我不在群里，也不在频道里，那我在哪？")
+        log.error("我不在群里，也不在频道里，那我在哪？")
     state = group_state.get_group_state(id)
 
     match = ctx.matched.regex

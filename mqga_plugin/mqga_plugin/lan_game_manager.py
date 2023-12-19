@@ -4,7 +4,6 @@ import string
 from enum import Enum, auto
 
 from mqga import log
-from mqga_plugin.game_state_manager import group_game_state_manager, GameState
 
 class IPFeature(Enum):
     """ IP功能 """

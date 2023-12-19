@@ -21,7 +21,7 @@ async def state_cheat():
     elif isinstance(message, GroupMessage):
         id = message.group_id
     else:
-        log.error(f"我不在群里，也不在频道里，那我在哪？")
+        log.error("我不在群里，也不在频道里，那我在哪？")
 
     match = ctx.matched.regex
     info = match.group(1)

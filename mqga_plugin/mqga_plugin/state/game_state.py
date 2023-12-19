@@ -22,7 +22,7 @@ async def game_state():
     elif isinstance(message, GroupMessage):
         id = message.group_id
     else:
-        log.error(f"我不在群里，也不在频道里，那我在哪？")
+        log.error("我不在群里，也不在频道里，那我在哪？")
 
     state = group_state.get_group_state(id)
     log.info("我看看怎么个事")

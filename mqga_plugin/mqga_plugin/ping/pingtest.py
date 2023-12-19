@@ -7,7 +7,7 @@ plugin_info(
     version="0.0.1",
     description="你就说ping没ping吧"
 )
-from mqga import group_context as ctx, on_message
+# from mqga import group_context as ctx, on_message
 
 # @on_message.regex(r"^\s*/ping\s*(.+)$")
 # def ping():

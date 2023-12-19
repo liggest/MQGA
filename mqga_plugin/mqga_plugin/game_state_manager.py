@@ -1,5 +1,4 @@
 from enum import Enum
-from mqga import log
 
 class GameState(Enum):
     """ 游戏状态 """
