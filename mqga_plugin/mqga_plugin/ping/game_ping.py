@@ -12,8 +12,8 @@ from mqga import group_context as ctx, on_message
 from mqga.q.message import ChannelMessage, GroupMessage
 from mqga.log import log
 
-@on_message.regex(r"^\s*/探测\s*(.+)$")
-@on_message.regex(r"^\s*/ping\s*(.+)$")
+@on_message.regex(r"^\s*/探测\s*(.*)$")
+@on_message.regex(r"^\s*/ping\s*(.*)$")
 async def ping():
     group_state = group_game_state_manager
     message = ctx.message
@@ -38,6 +38,8 @@ async def ping():
                     '写入位置0x0⌽␦␦⌀0000时发生访问�⌽�冲突…\n' \
                     '你���可以忽悠此错�⌽⌽�误并尝␦⌀␦试使用␦/help（/说明书）来���'
         return content
+    elif not info:
+        return "请提供要探测的 ip 地址"
     else:
         game_manager = LAN_game_manager
         content = game_manager.ping_ip(id, user, info)
