@@ -111,7 +111,7 @@ class CommandFilter(Filter):
         if self.ignore_case:
             message = message.lower()
         if is_match := message.startswith(self.name):
-            message = message.removeprefix(self.name)
+            message = message.removeprefix(self.name).lstrip()
         self.context.matched << message
         return is_match
 

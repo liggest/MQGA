@@ -159,7 +159,7 @@ class ChannelAPI(UnifiedAPI):
     Prefix = "/channels"
 
     @staticmethod
-    def _payload_to_id(payload):
+    def _payload_to_id(payload) -> str | None:
         """ 从 payload 中获取频道 id """
         return getattr(payload.data, "channel_id", None)
 
@@ -223,7 +223,7 @@ class GroupAPI(UnifiedAPI):
     Prefix = "/v2/groups"
 
     @staticmethod
-    def _payload_to_id(payload):
+    def _payload_to_id(payload) -> str | None:
         """ 从 payload 中获取群 id """
         return getattr(payload.data, "group_id", None)
 
@@ -232,7 +232,7 @@ class PrivateAPI(UnifiedAPI):
     Prefix = "/v2/users"
 
     @staticmethod
-    def _payload_to_id(payload):
+    def _payload_to_id(payload) -> str | None:
         """ 从 payload 中获取用户 id """
         user: IDUser | None = getattr(payload.data, "author", None)
         return user and user.id

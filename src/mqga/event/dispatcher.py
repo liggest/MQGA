@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, TypeVar, Generic, get_origin, get_args, Iterable, Generator, Callable
+from typing import TYPE_CHECKING, TypeVar, Generic, get_origin, get_args, Iterable, Generator, Callable, Awaitable
 import types
-import inspect
+# import inspect
 import re
 
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.event.manager import Manager
     from mqga.q.message import Message
+    from typing_extensions import Self
 
 from mqga.log import log
 from mqga.event.event import Box, Params, ReturnT, Event
+from mqga.event.handler import handle_awaitable, handle_str, handle_emoji_add, handle_emoji_remove
 # from mqga.event.event import PlainReturns
 from mqga.event.space import MessageSpace
 from mqga.q.constant import EventType, OpCode
@@ -33,11 +35,38 @@ MessageEventPayloadT = TypeVar("MessageEventPayloadT", bound=MessageEventPayload
 class Dispatcher(Generic[T, Params, ReturnT]):
 
     def __init__(self, manager: Manager):
-        pass
+        self._acceptors = None
+        self._handlers = None
+
+    @property
+    def acceptors(self) -> list[Callable[[Self, Bot, T], Awaitable[bool]]]:
+        if self._acceptors is None:
+            self._acceptors = []
+        return self._acceptors
+
+    @acceptors.setter
+    def acceptors(self, val: list[Callable[[Self, Bot, T], Awaitable[bool]]]):
+        self._acceptors = val
+
+    @property
+    def handlers(self) -> list[Callable[[Self, ReturnT, Bot, T], Awaitable[bool]]]:
+        if self._handlers is None:
+            self._handlers = self._init_handlers()
+        return self._handlers
+
+    @handlers.setter
+    def handlers(self, val: list[Callable[[Self, ReturnT, Bot, T], Awaitable[bool]]]):
+        self._handlers = val
+
+    @classmethod
+    def _init_handlers(cls) -> list[Callable[[Self, ReturnT, Bot, T], Awaitable[bool]]]:
+        return [ handle_awaitable ]
 
     async def is_accept(self, bot: Bot, target: T) -> bool:
-        # TODO
-        raise NotImplementedError
+        if not self._acceptors:  # 没有 acceptors 时默认接受
+            return True
+        coros = (acceptor(self, bot, target) for acceptor in self.acceptors)
+        return all(await asyncio.gather(*coros))
 
     async def _pre_dispatch(self, bot: Bot, target: T):
         pass
@@ -46,48 +75,36 @@ class Dispatcher(Generic[T, Params, ReturnT]):
         return []
 
     async def _handle_emit(self, result: ReturnT, bot: Bot, target: T):
-        if inspect.isawaitable(result):
-            bot._em.background_task(result)  # 回调返回的可等待对象，送去后台执行
+        for handler in self.handlers:
+            if await handler(self, result, bot, target):  # 调用第一个可用的 handler
+                break
+        
+        # if inspect.isawaitable(result):
+        #     bot._em.background_task(result)  # 回调返回的可等待对象，送去后台执行
 
     async def _post_dispatch(self, bot: Bot, target: T):
         pass
 
     async def dispatch(self, bot: Bot, target: T, *args: Params.args, **kw: Params.kwargs):
+        if not (accepted := await self.is_accept(bot, target)):
+            return accepted
+
         await self._pre_dispatch(bot, target)
 
         for result in await self.emit(bot, target, *args, **kw):
             await self._handle_emit(result, bot, target)
         
         await self._post_dispatch(bot, target)
+
+        return accepted
         
     def register(self, box: Box[Params, ReturnT], bot: Bot, target: T):
-        pass
+        raise NotImplementedError
 
 class EventDispatcher(Dispatcher[Event[Params, ReturnT], Params, ReturnT]):
 
-    # async def is_accept(self, bot, target) -> bool:
-    #     
-    #     raise NotImplementedError
-
-    # async def _pre_dispatch(self, bot, target):
-    #     pass
-
-    # async def _handle_emit(self, result, bot, target):
-    #     pass
-
-    # async def _post_dispatch(self, bot, target):
-    #     pass
-
     async def emit(self, bot, target, *args, **kw):
         return await target.emit(*args, **kw)
-    
-    # async def dispatch(self, bot, target, *args, **kw):
-    #     await self._pre_dispatch(bot, target)
-
-    #     for result in await self.emit(bot, target, *args, **kw):
-    #         await self._handle_emit(result, bot, target)
-        
-    #     await self._post_dispatch(bot, target)
         
     def register(self, box, bot, target):
         return target.register(box)
@@ -149,20 +166,6 @@ class PayloadDispatcher(Dispatcher[PayloadT, [], ReturnT], metaclass=PayloadDisp
             return await event.emit()
         return []
 
-    # async def _handle_emit(self, result, bot, target):
-    #     pass
-
-    # async def _post_dispatch(self, bot, target):
-    #     pass
-
-    # async def dispatch(self, bot, target):
-    #     await self._pre_dispatch(bot, target)
-
-    #     for result in await self.emit(bot, target):
-    #         await self._handle_emit(result, bot, target)
-        
-    #     await self._post_dispatch(bot, target)
-
     def register(self, box: Box[[], ReturnT], bot: Bot, target: PayloadT):
         # if event := self._payload_event(bot):
             # event.register(box)
@@ -190,6 +193,10 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     
     # def __init__(self, manager: Manager):
     #     self._message_event = manager._root_event.qq_event.message_event
+
+    @classmethod
+    def _init_handlers(cls):
+        return [ handle_str, *super()._init_handlers() ]
 
     @classmethod
     def _message_space(cls, bot: Bot):
@@ -251,15 +258,15 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
         if event := MessageSpace.any.get_in(space):
             return await event.emit()
 
-    async def _handle_emit(self, result, bot: Bot, target: MessageEventPayloadT):
-        if isinstance(result, str):
-            return await self._reply_str(result, bot, target)
-        return await super()._handle_emit(result, bot, target)
+    # async def _handle_emit(self, result, bot: Bot, target: MessageEventPayloadT):
+    #     if isinstance(result, str):
+    #         return await self._reply_str(result, bot, target)
+    #     return await super()._handle_emit(result, bot, target)
 
     async def _reply_str(self, content: str, bot: Bot, payload: MessageEventPayloadT):
         dispatcher: MessageDispatcher = bot._em._dispatchers[payload.type]  # 回复来自各个渠道的消息
         if self is dispatcher:
-            return {}
+            return await bot.api.of(payload).reply_text(content, payload)
         return await dispatcher._reply_str(content, bot, payload)
 
     # def register(self, box, bot: Bot, target: MessageEventPayloadT):
@@ -350,21 +357,27 @@ class PrivateMessageDispatcher(
 class ChannelMessageReactionAddDispatcher(
     EventPayloadDispatcher[ChannelMessageReactionAddEventPayload, Emoji]
 ):
+    @classmethod
+    def _init_handlers(cls):
+        return [ handle_emoji_add, *super()._init_handlers() ]
 
-    async def _handle_emit(self, result, bot, target):
-        if isinstance(result, Emoji):
-            return await bot._api.channel.reaction(target.data, result)
-        return await super()._handle_emit(result, bot, target)
+    # async def _handle_emit(self, result, bot, target):
+    #     if isinstance(result, Emoji):
+    #         return await bot._api.channel.reaction(target.data, result)
+    #     return await super()._handle_emit(result, bot, target)
 
 
 class ChannelMessageReactionRemoveDispatcher(
     EventPayloadDispatcher[ChannelMessageReactionRemoveEventPayload, Emoji]
 ):
-    
-    async def _handle_emit(self, result, bot, target):
-        if isinstance(result, Emoji):
-            return await bot._api.channel.reaction_delete(target.data, result)
-        return await super()._handle_emit(result, bot, target)
+    @classmethod
+    def _init_handlers(cls):
+        return [ handle_emoji_remove, *super()._init_handlers() ]
+
+    # async def _handle_emit(self, result, bot, target):
+    #     if isinstance(result, Emoji):
+    #         return await bot._api.channel.reaction_delete(target.data, result)
+    #     return await super()._handle_emit(result, bot, target)
 
 def event_dispatcher_cls(payload_cls: type[Payload]):
     """ 从 payload_cls 动态创建 Dispatcher """
