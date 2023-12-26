@@ -30,8 +30,8 @@ def rest():
             log.debug(f"在 {this_id} 睡着呢")
             ctx.message = payload.data  # ctx.message 应该还没被赋值，给它赋上
             condition = condition or is_wake_up()  # 检测是否叫醒
-            ctx.message = None
-            del ctx.matched.filter_by
+            ctx.message = None         # 把 message 重置掉
+            del ctx.matched.filter_by  # 把 filter_by 重置掉，避免之后再重置的时候上下文不一致报错
         return condition
     
     bot._em._all_message_dispatcher.acceptors.append(reject_this)
