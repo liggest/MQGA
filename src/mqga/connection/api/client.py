@@ -92,18 +92,22 @@ class APIClient:
 
     async def _get(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        log.debug(f"GET {api} {params!r}")
         return self._handle_response(await self._client.get(api, params=params, timeout=timeout, **kw))
 
     async def _post(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        log.debug(f"POST {api} {data!r}")
         return self._handle_response(await self._client.post(api, json=data, timeout=timeout, **kw))
 
     async def _put(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        log.debug(f"PUT {api} {data!r}")
         return self._handle_response(await self._client.put(api, json=data, timeout=timeout, **kw))
 
     async def _delete(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        log.debug(f"DELETE {api} {params!r}")
         return self._handle_response(await self._client.delete(api, params=params, timeout=timeout, **kw))
 
     def _handle_response(self, response: httpx.Response):
@@ -125,6 +129,7 @@ class APIClient:
                 raise APIError(data) from http_error
             else:
                 raise APIError(data)
+        log.debug(f"{response.status_code} {data or response.is_success !r}")
         return data or response.is_success
 
     async def _ensure_token(self):
