@@ -65,3 +65,4 @@ class Manager:
             coro = asyncio.create_task(coro)
         self._tasks.add(coro)
         coro.add_done_callback(self._task_done)
+        return coro
