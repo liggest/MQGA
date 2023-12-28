@@ -2,7 +2,8 @@
 from mqga import on_message, context as ctx
 from mqga.plugin import plugin_info
 from mqga.log import log
-from mqga.event.filter import Filters
+
+from mqga_plugin.toolz import Filters
 
 from mqga.event.dispatcher import MessageDispatcher
 from mqga.q.payload import EventPayload
