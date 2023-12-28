@@ -1,11 +1,14 @@
 
 from mqga import on_message, context as ctx
+from mqga.plugin import plugin_info
 from mqga.log import log
 from mqga.event.filter import Filters
 
 from mqga.event.dispatcher import MessageDispatcher
 from mqga.q.payload import EventPayload
 from mqga.bot import Bot
+
+plugin_info("ban", "liggest", description="休息一回")
 
 @on_message.filter_by(Filters.command("cmd", ignore_case=True, context=ctx))
 def my_command():
