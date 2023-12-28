@@ -2,6 +2,7 @@ import sys
 import types
 import inspect
 from pathlib import Path
+from functools import cached_property
 
 from mqga.log import log
 
@@ -33,15 +34,18 @@ class PluginModule(types.ModuleType, metaclass=PluginModuleMeta):
     def __del__(self):
         log.debug(f"PluginModule.__del__  {self!r} 使命结束")
 
-    @property
+    @cached_property  # 在 loader 里会被赋值，对于单文件，为文件路径，对于目录，为目录路径
     def path(self):
         """ 插件路径 """
-        return Path(self.__file__)
+        return Path(self.__file__) if not self.__file__.endswith("__init__.py") else Path(self.__file__).parent
 
     @property
     def data_dir(self):
         """ 插件数据目录 """
-        return Path(f"./data/{self.path.stem}")
+        path = Path(f"./data/{self.path.stem}")
+        path.mkdir(parents=True, exist_ok=True)
+        log.debug(f"确保插件 {self.name} 的数据目录 {path.as_posix()} 存在")
+        return path
     
 def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA 插件"):
     """ 设置插件信息 """
