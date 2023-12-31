@@ -1,8 +1,9 @@
 
 from mqga import on_message, context as ctx
-from mqga.event.filter import Filters
 from mqga.plugin.module import PluginModule
 from mqga.log import log
+
+from mqga_plugin.toolz import Filters
 
 @on_message.filter_by(Filters.prefix("/服务列表"))
 def service():

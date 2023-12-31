@@ -28,7 +28,8 @@ build-backend = "pdm.backend"
 version = {source = "file", path = "src/mqga/__version__.py"}
 
 [tool.pdm.scripts]
-bot = {cmd = "python bot.py"}
+# bot = {cmd = "python bot.py"}
+bot = {cmd = "python -m mqga"}
 
 [tool.ruff.lint]
 ignore = ["E501", "E402"]
