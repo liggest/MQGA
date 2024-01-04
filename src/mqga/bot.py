@@ -74,11 +74,22 @@ class Bot:
     async def _stopper(self):
         self._ended = asyncio.Event()
         try:
+            self._handle_signal()
             yield
         finally:
             await self.stop()
 
+    def _handle_signal(self):
+        import platform
+        if platform.system() != "Windows":
+            # 非 windows 平台，通过 self.stop()，等待任务结束，自行终止
+            import signal
+            def to_stop():
+                asyncio.create_task(self.stop())
+            asyncio.get_running_loop().add_signal_handler(signal.SIGINT, to_stop)
+
     async def _run(self):
+
         async with (self, 
                     self._api, 
                     self._ws, 
