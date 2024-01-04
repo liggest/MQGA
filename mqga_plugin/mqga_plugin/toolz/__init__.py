@@ -1,0 +1,8 @@
+
+from mqga.plugin import plugin_info
+
+plugin_info("toolz", "liggest", description="MQGA 工具集")
+
+from mqga_plugin.toolz.filter import Filters
+
+__all__ = ["Filters"]
