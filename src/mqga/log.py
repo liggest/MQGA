@@ -1,8 +1,9 @@
 import os
 import sys
+import re
 import logging
 from mqga.args import args
-from time import strftime
+from logging.handlers import TimedRotatingFileHandler
 
 BOOTPath = os.getcwd()
 PATH = os.path.abspath('.') + '/log/'
@@ -60,17 +61,18 @@ class MQGALog(object):
             os.mkdir(PATH)
         self.logger = logging.getLogger(DEFAULT_LOGGER_NAME)
         # self.file_formatter = logging.Formatter(fmt=File_FMT, datefmt=DATEFMT)
-        self.log_filename = '{0}{1}.log'.format(PATH, strftime("%Y-%m-%d"))
     
-        self.file_handler = self.get_file_handler(self.log_filename)
+        self.file_handler = self.get_file_handler()
         self.std_handler = self.get_console_handler(False)
         self.logger.addHandler(self.file_handler)
         self.logger.addHandler(self.std_handler)
 
         self.logger.setLevel(logging.INFO)
 
-    def get_file_handler(self, filename):
-        filehandler = logging.FileHandler(filename, encoding="utf-8")
+    def get_file_handler(self):
+        filehandler = TimedRotatingFileHandler(filename=f"{PATH}dump.log", when="midnight", interval=1, backupCount=7)
+        filehandler.suffix = "%Y-%m-%d"
+        filehandler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}$")
         filehandler.setFormatter(FileFormatter(File_FMT, DATEFMT))
         return filehandler
 
