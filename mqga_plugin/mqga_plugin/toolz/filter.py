@@ -103,6 +103,8 @@ class CommandFilter(Filter):
 
     def __init__(self, command: str, ignore_case = False, context: BotContext = None):
         super().__init__(context)
+        if ignore_case:
+            command = command.lower()
         self.name = command.lstrip(self.prefix)
         self.ignore_case = ignore_case
 
