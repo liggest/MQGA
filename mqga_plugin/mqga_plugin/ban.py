@@ -7,6 +7,7 @@ from mqga_plugin.toolz import Filters
 
 from mqga.event.dispatcher import MessageDispatcher
 from mqga.q.payload import EventPayload
+from mqga.q.message import ChannelMessage
 from mqga.bot import Bot
 
 plugin_info("ban", "liggest", description="休息一回")
@@ -33,6 +34,8 @@ def rest():
         if not condition:  # 是被屏蔽的群号
             log.debug(f"在 {this_id} 睡着呢")
             ctx.message = payload.data  # ctx.message 应该还没被赋值，给它赋上
+            if isinstance(ctx.message, ChannelMessage):  # 去掉 @bot  TODO 更好的写法
+                ctx.message.content = ctx.message.content.removeprefix(f"<@!{bot.user.id}>")
             condition = condition or is_wake_up()  # 检测是否叫醒
             ctx.message = None         # 把 message 重置掉
             del ctx.matched.filter_by  # 把 filter_by 重置掉，避免之后再重置的时候上下文不一致报错
