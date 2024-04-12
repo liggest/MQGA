@@ -37,3 +37,26 @@ if TYPE_CHECKING:
         """ 文件信息 """
         ttl: int
         """ 有效期，为 0 时一直有效 """
+
+    class MarkdownParam(TypedDict):
+        key: str
+        """ 参数名 """
+        values: list[str]
+        """ 参数值 """
+
+    class MarkdownTemplate(TypedDict):
+        """ markdown 模板 """
+        custom_template_id: str
+        """ 模板 id """
+        params: list[MarkdownParam]
+        """ 模板内含的动态参数 """
+
+    class MarkdownContent(TypedDict):
+        """ 原生 markdown """
+        content: str
+
+    # class ChannelMarkdown(TypedDict):
+    #     template_id: int
+    #     """ 模板 id """
+    #     params: list[MarkdownParam]
+    #     """ 模板内含的动态参数 """

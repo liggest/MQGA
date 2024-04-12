@@ -60,3 +60,11 @@ class API:
     async def reply_media(self, file_or_url: str | FileInfo, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片):
         """ 以富媒体（图文等）回复消息、事件 """
         return await self.of(payload).reply_media(file_or_url, payload, content, file_type)
+
+    async def reply_md(self, template: str, payload: EventPayload, params: dict[str, str] = None, content: str = ""):
+        """ 
+            以 Markdown 回复消息、事件\n
+            content 有值时将忽略 template 和 params，作为原生 markdown 发送
+        """
+        return await self.of(payload).reply_md(template, payload, params, content)
+        
