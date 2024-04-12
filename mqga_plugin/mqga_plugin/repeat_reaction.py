@@ -31,6 +31,7 @@ async def remove_reaction():
         if any(bot.user.id == user.id for user in 
                 await bot.api.channel.reaction_get_head_users(data, data.emoji)):
             log.debug("也揭掉自己贴的表情…")
-            await bot.api.channel.reaction_delete(data, data.emoji)
+            # await bot.api.channel.reaction_delete(data, data.emoji)
+            return data.emoji
     else:
         log.debug(f"自己的表情被揭了：{data!r}")

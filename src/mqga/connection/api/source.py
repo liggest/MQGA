@@ -208,11 +208,13 @@ class ChannelAPI(UnifiedAPI):
         data = {"limit": per_page}
         result = await self._get_source(url, data)
         data.clear()
-        yield [User(**user) for user in result["users"]]
+        if users := result.get("users"):
+            yield [User(**user) for user in users]
         while not result["is_end"]:
             data["cookie"] = result["cookie"]
             result = await self._get_source(url, data)
-            yield [User(**user) for user in result["users"]]
+            if users := result.get("users"):
+                yield [User(**user) for user in users]
 
     async def reaction_get_head_users(self, message: ChannelAndMessageID, emoji: Emoji, limit = 20):
         """ 获取对消息贴表情的用户，最多只能得到前 20 个 """

@@ -6,8 +6,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.event.dispatcher import MessageDispatcher
-    from mqga.q.message import Emoji
     from mqga.q.payload import EventPayload
+
+from mqga.q.message import Emoji
 
 async def handle_awaitable(dispatcher, result, bot: Bot, target) -> bool:
     if inspect.isawaitable(result):
