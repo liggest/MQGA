@@ -24,13 +24,20 @@ else:
             log.error("或许当前不是开发环境，watchfiles 未安装，无法热重载")
             sys.exit(1)
         
-        from pathlib import Path
-        paths = [Path("./src/"), *Path(".").glob("*.py"), *Path(".").glob("*.toml")]
+        def path_gen():
+            from pathlib import Path
+            yield Path("./src/")
+            yield from Path(".").glob("*.py")
+            if args.config:
+                yield Path(args.config)
+            if args.dump:
+                yield Path(args.dump)
+        paths = [*path_gen()]
         log.info("正在启用热重载…")
-        args = sys.argv
-        # if args[0].endswith(".py"):  # 去掉 bot.py 等
-        #     args = args[1:]
-        cmd = " ".join((sys.executable, *args))
+        argv = sys.argv
+        # if argv[0].endswith(".py"):  # 去掉 bot.py 等
+        #     argv = argv[1:]
+        cmd = " ".join((sys.executable, *argv))
         log.debug(f"以下目录、文件变化时执行：{cmd}")
         log.debug("\n".join(path.as_posix() for path in paths))
 
