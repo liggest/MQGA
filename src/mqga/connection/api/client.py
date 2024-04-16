@@ -116,7 +116,7 @@ class APIClient:
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
             http_error = e
-        if response.status_code == 204: # 无数据
+        if response.status_code == 204 or not response.content: # 无数据
             return True
         try:
             data: dict = response.json()
