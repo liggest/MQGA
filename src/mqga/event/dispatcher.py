@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 from mqga.log import log
 from mqga.event.event import Box, Params, ReturnT, Event
 from mqga.event.handler import handle_awaitable, handle_str, handle_emoji_add, handle_emoji_remove
+from mqga.event.handler import handle_button_interact
 # from mqga.event.event import PlainReturns
 from mqga.event.space import MessageSpace
 from mqga.q.constant import EventType, OpCode
@@ -24,6 +25,7 @@ from mqga.q.payload import event_type_from, op_code_from
 from mqga.q.payload import Payload, EventPayload, ChannelAtMessageEventPayload
 from mqga.q.payload import ChannelMessageReactionAddEventPayload, ChannelMessageReactionRemoveEventPayload
 from mqga.q.payload import GroupAtMessageEventPayload, PrivateMessageEventPayload
+from mqga.q.payload import ButtonInteractEventPayload
 
 MessageEventPayload = ChannelAtMessageEventPayload | GroupAtMessageEventPayload | PrivateMessageEventPayload
 
@@ -378,6 +380,13 @@ class ChannelMessageReactionRemoveDispatcher(
     #     if isinstance(result, Emoji):
     #         return await bot._api.channel.reaction_delete(target.data, result)
     #     return await super()._handle_emit(result, bot, target)
+
+class ButtonInteractDispatcher(
+    EventPayloadDispatcher[ButtonInteractEventPayload, None]
+):
+    @classmethod
+    def _init_handlers(cls):
+        return [ handle_button_interact, *super()._init_handlers() ]
 
 def event_dispatcher_cls(payload_cls: type[Payload]):
     """ 从 payload_cls 动态创建 Dispatcher """

@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.q.payload import EventPayload
     from mqga.q.api import FileInfo
+    from mqga.q.api import MarkdownTemplate, MarkdownCustom, KeyboardTemplate, KeyboardCustom
 
 from mqga.q.constant import FileType
 
@@ -61,10 +62,10 @@ class API:
         """ 以富媒体（图文等）回复消息、事件 """
         return await self.of(payload).reply_media(file_or_url, payload, content, file_type)
 
-    async def reply_md(self, template: str, payload: EventPayload, params: dict[str, str] = None, content: str = ""):
+    async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom = None, keyboard: KeyboardTemplate | KeyboardCustom = None):
         """ 
-            以 Markdown 回复消息、事件\n
-            content 有值时将忽略 template 和 params，作为原生 markdown 发送
+            以 markdown 回复消息、事件\n
+            keyboard 为消息底部挂载的按钮
         """
-        return await self.of(payload).reply_md(template, payload, params, content)
+        return await self.of(payload).reply_md(payload, markdown, keyboard)
         

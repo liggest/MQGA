@@ -9,7 +9,11 @@ if TYPE_CHECKING:
     from mqga.q.message import IDUser
     from mqga.q.message import Emoji, ChannelAndMessageID
     from mqga.q.api import WSURL
-    from mqga.q.api import FileInfo, RepliedMessage, MarkdownTemplate, MarkdownContent
+    from mqga.q.api import FileInfo
+    from mqga.q.api import RepliedMessage
+    from mqga.q.api import MarkdownTemplate, MarkdownCustom, KeyboardTemplate, KeyboardCustom
+    from mqga.q.constant import InteractionResult
+    from mqga.q.payload import ButtonInteractEventPayload
 
 from mqga.log import log
 from mqga.q.message import Message, ChannelMessage
@@ -96,19 +100,16 @@ class UnifiedAPI:
         if isinstance(payload.data, Message):
             data["msg_id"] = payload.data.id
         else:
-            data["event_id"] = payload.type  # TODO 确定所有能回复的 payload 类型
+            data["event_id"] = payload.id  # TODO 确定所有能回复的 payload 类型
+            # 目前好像是用 payload 最外面的 id
+            # getattr(payload.data, "id")
+            # (payload.id.split(":")[-1] if payload.id else None)
         return data
 
     @staticmethod
     def _message_media_data(data: dict, media: FileInfo = None):
         if media:
             data["media"] = media
-        return data
-
-    @staticmethod
-    def _message_md_data(data: dict, md: MarkdownTemplate = None):
-        if md:
-            data["markdown"] = md
         return data
 
     _sequences: WeakKeyDictionary[EventPayload, int] = WeakKeyDictionary()
@@ -156,29 +157,46 @@ class UnifiedAPI:
         self._message_media_data(data, file_or_url)
         return await self._post_source(f"/{source_id}/messages", data=data)
     
-    @staticmethod
-    def _md_data(template: str, params: dict[str, str] = None, content: str = "") -> MarkdownTemplate | MarkdownContent:
-        if content:
-            if template:
-                log.warning(f"指定了原生 markdown 内容 {content = !r}, 将忽略模板 ID {template!r} 和参数 {params = !r}")
-            return {"content": content}
-        params = params or {}
-        return {
-            "custom_template_id": template,
-            "params": [
-                {"key": k, "values": [v]} for k, v in params.items()
-            ]
-        }
+    # @staticmethod
+    # def _md_data(template: str, params: dict[str, str] = None, content: str = "") -> MarkdownTemplate | MarkdownContent:
+    #     if content:
+    #         if template:
+    #             log.warning(f"指定了原生 markdown 内容 {content = !r}, 将忽略模板 ID {template!r} 和参数 {params = !r}")
+    #         return {"content": content}
+    #     params = params or {}
+    #     return {
+    #         "custom_template_id": template,
+    #         "params": [
+    #             {"key": k, "values": [v]} for k, v in params.items()
+    #         ]
+    #     }
 
-    async def reply_md(self, template: str, payload: EventPayload, params: dict[str, str] = None, content: str = "")  -> RepliedMessage:
+    @staticmethod
+    def _message_md_data(data: dict, markdown: MarkdownTemplate | MarkdownCustom = None):
+        if markdown:
+            data["markdown"] = markdown
+        return data
+
+    @staticmethod
+    def _message_keyboard_data(data: dict, keyboard: KeyboardTemplate | KeyboardCustom = None):
+        if keyboard:
+            data["keyboard"] = keyboard
+        return data
+
+    async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom = None, keyboard: KeyboardTemplate | KeyboardCustom = None)  -> RepliedMessage:
         """ 
-            以 Markdown 回复消息、事件\n
-            content 有值时将忽略 template 和 params，作为原生 markdown 发送
+            以 markdown 回复消息、事件\n
+            keyboard 为消息底部挂载的按钮
         """
         data = self._message_data(content="", payload=payload, type=MessageType.Markdown)
-        md = self._md_data(template, params, content)
-        self._message_md_data(data, md)
+        # md = self._md_data(template, params, content)
+        self._message_md_data(data, markdown)
+        self._message_keyboard_data(data, keyboard)
         return await self._post_source(f"/{self._to_id(payload)}/messages", data=data)
+
+    async def button_interacted(self, payload: ButtonInteractEventPayload, result: InteractionResult) -> bool:
+        """ 向 QQ 告知按钮交互带来的 `payload` 事件已处理，结果为 `result`  """
+        return await self._put(f"/interactions/{payload.data.id}", data={ "code": result })
 
 
 class ChannelAPI(UnifiedAPI):
@@ -225,17 +243,8 @@ class ChannelAPI(UnifiedAPI):
         self._message_media_data(data, file_or_url)
         return ChannelMessage(**await self._post_source(f"/{self._to_id(payload)}/messages", data=data))
 
-    # @staticmethod
-    # def _md_data(template: str, **kw) -> ChannelMarkdown:
-    #     return {
-    #         "template_id": template,
-    #         "params": [
-    #             {"key": k, "values": [v]} for k, v in kw.items()
-    #         ]
-    #     }
-    
-    async def reply_md(self, template: str, payload: EventPayload, params: dict[str, str] = None, content: str = ""):
-        return ChannelMessage(**await super().reply_md(template, payload, params, content))  # 好像目前频道无法用被动消息回复 markdown
+    async def reply_md(self, payload: EventPayload, md: MarkdownTemplate | MarkdownCustom = None, keyboard: KeyboardTemplate | KeyboardCustom = None):
+        return ChannelMessage(**await super().reply_md(payload, md, keyboard))  # 好像目前频道无法用被动消息回复 markdown
 
     def _reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):
         if hasattr(message, "id"):
