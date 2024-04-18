@@ -30,8 +30,8 @@ else:
             yield from Path(".").glob("*.py")
             if args.config:
                 yield Path(args.config)
-            if args.dump:
-                yield Path(args.dump)
+            # if args.dump:
+            #     yield Path(args.dump)
         paths = [*path_gen()]
         log.info("正在启用热重载…")
         argv = sys.argv
