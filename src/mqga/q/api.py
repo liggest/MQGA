@@ -85,7 +85,7 @@ if TYPE_CHECKING:
 
     class ButtonPermissionForUser(ButtonPermission):
         """ 指定用户的按钮权限 """
-        type: Literal[ButtonPermissionType.指定用户] = ButtonPermissionType.指定用户
+        type: Literal[ButtonPermissionType.指定用户]
         """ 权限类型 """
         specify_user_ids: list[str]
         """ 指定用户 ID 列表 """
@@ -94,7 +94,7 @@ if TYPE_CHECKING:
 
     class ButtonPermissionForRole(ButtonPermission):
         """ 指定身份组的按钮权限 """
-        type: Literal[ButtonPermissionType.指定身份组] = ButtonPermissionType.指定身份组
+        type: Literal[ButtonPermissionType.指定身份组]
         """ 权限类型 """
         specify_role_ids: list[RoleID | str]
         """ 指定身份组 ID 列表 """
@@ -112,27 +112,27 @@ if TYPE_CHECKING:
 
     class CommandButtonAction(ButtonAction):
         """ 指令按钮动作 """
-        type: Literal[ButtonActionType.指令] = ButtonActionType.指令
+        type: Literal[ButtonActionType.指令]
         """ 动作类型 """
         data: str
         """ 要为交互者自动输入的指令 """
-        reply: NotRequired[bool] = False
-        """ 是否回复当前按钮消息 """
-        enter: NotRequired[bool] = False
-        """ 是否自动发送指令 """
+        reply: NotRequired[bool]
+        """ 是否回复当前按钮消息，默认为 `False` """
+        enter: NotRequired[bool]
+        """ 是否自动发送指令，默认为 `False` """
         anchor: NotRequired[int]
-        """ 为 1 时，忽略 enter 的效果，按下按钮会唤起手机 QQ 选图器 """  # ？
+        """ 为 `1` 时，忽略 `enter` 的效果，按下按钮会唤起手机 QQ 选图器 """  # ？
 
     class JumpButtonAction(ButtonAction):
         """ 跳转按钮动作 """
-        type: Literal[ButtonActionType.跳转] = ButtonActionType.跳转
+        type: Literal[ButtonActionType.跳转]
         """ 动作类型 """
         data: str
         """ 跳转链接等 """
 
     class InteractButtonAction(ButtonAction):
         """ 回调按钮动作 """
-        type: Literal[ButtonActionType.回调] = ButtonActionType.回调
+        type: Literal[ButtonActionType.回调]
         """ 动作类型 """
         data: str
         """ 回调数据 """

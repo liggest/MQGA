@@ -36,7 +36,7 @@ class Toml(BaseModel):
 
 class Init():
     toml = Toml()
-    def __init__(self, args: object):
+    def __init__(self, args):
         config_file = 'config.toml'
         save_file = config_file
         if args.config:

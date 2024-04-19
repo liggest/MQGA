@@ -2,12 +2,12 @@
 from mqga.args import args
 from mqga.log import log
 
-LEGACY = args.legacy
+LEGACY: bool = args.legacy
 if LEGACY:
     log.info("【旧 频道模式】…")
 
-DEBUG = args.debug
-RELOAD = args.reload
+DEBUG: bool = args.debug
+RELOAD: bool = args.reload
 if not RELOAD:
     def run():
         from mqga.bot import Bot

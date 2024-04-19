@@ -62,7 +62,7 @@ class API:
         """ 以富媒体（图文等）回复消息、事件 """
         return await self.of(payload).reply_media(file_or_url, payload, content, file_type)
 
-    async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom = None, keyboard: KeyboardTemplate | KeyboardCustom = None):
+    async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom | None = None, keyboard: KeyboardTemplate | KeyboardCustom | None = None):
         """ 
             以 markdown 回复消息、事件\n
             keyboard 为消息底部挂载的按钮

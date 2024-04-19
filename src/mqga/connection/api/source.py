@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from mqga.q.api import MarkdownTemplate, MarkdownCustom, KeyboardTemplate, KeyboardCustom
     from mqga.q.constant import InteractionResult
     from mqga.q.payload import ButtonInteractEventPayload
+    
+    import httpx
+    UseClientDefault = httpx._client.UseClientDefault
 
 from mqga.log import log
 from mqga.q.message import Message, ChannelMessage
@@ -48,19 +51,19 @@ class UnifiedAPI:
     def _delete(self):
         return self.client._delete
 
-    async def _get_source(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _get_source(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._get(f"{self.Prefix}{api}", params=params, timeout=timeout, **kw)
 
-    async def _post_source(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post_source(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._post(f"{self.Prefix}{api}", data=data, timeout=timeout, **kw)
 
-    async def _put_source(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _put_source(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._put(f"{self.Prefix}{api}", data=data, timeout=timeout, **kw)
 
-    async def _delete_source(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _delete_source(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._delete(f"{self.Prefix}{api}", params=params, timeout=timeout, **kw)
 
@@ -107,7 +110,7 @@ class UnifiedAPI:
         return data
 
     @staticmethod
-    def _message_media_data(data: dict, media: FileInfo = None):
+    def _message_media_data(data: dict, media: FileInfo | None = None):
         if media:
             data["media"] = media
         return data
@@ -172,18 +175,18 @@ class UnifiedAPI:
     #     }
 
     @staticmethod
-    def _message_md_data(data: dict, markdown: MarkdownTemplate | MarkdownCustom = None):
+    def _message_md_data(data: dict, markdown: MarkdownTemplate | MarkdownCustom | None = None):
         if markdown:
             data["markdown"] = markdown
         return data
 
     @staticmethod
-    def _message_keyboard_data(data: dict, keyboard: KeyboardTemplate | KeyboardCustom = None):
+    def _message_keyboard_data(data: dict, keyboard: KeyboardTemplate | KeyboardCustom | None = None):
         if keyboard:
             data["keyboard"] = keyboard
         return data
 
-    async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom = None, keyboard: KeyboardTemplate | KeyboardCustom = None)  -> RepliedMessage:
+    async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom | None = None, keyboard: KeyboardTemplate | KeyboardCustom | None = None)  -> RepliedMessage:
         """ 
             以 markdown 回复消息、事件\n
             keyboard 为消息底部挂载的按钮
@@ -227,7 +230,7 @@ class ChannelAPI(UnifiedAPI):
         return ChannelMessage(**await super().reply_text(content, payload))
 
     @staticmethod
-    def _message_media_data(data: dict, media: str = None):
+    def _message_media_data(data: dict, media: str | None = None):
         if media:
             data["image"] = media
         return data
@@ -243,7 +246,7 @@ class ChannelAPI(UnifiedAPI):
         self._message_media_data(data, file_or_url)
         return ChannelMessage(**await self._post_source(f"/{self._to_id(payload)}/messages", data=data))
 
-    async def reply_md(self, payload: EventPayload, md: MarkdownTemplate | MarkdownCustom = None, keyboard: KeyboardTemplate | KeyboardCustom = None):
+    async def reply_md(self, payload: EventPayload, md: MarkdownTemplate | MarkdownCustom | None = None, keyboard: KeyboardTemplate | KeyboardCustom | None = None):
         return ChannelMessage(**await super().reply_md(payload, md, keyboard))  # 好像目前频道无法用被动消息回复 markdown
 
     def _reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):

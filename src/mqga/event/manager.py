@@ -59,7 +59,7 @@ class Manager:
         elif e := task.exception():
             log.exception(f"后台任务 {task!r} 失败", exc_info=e)
 
-    def background_task(self, coro: Coroutine):
+    def background_task(self, coro: Coroutine | asyncio.Task):
         """ 让 coro 作为任务在后台执行 """
         if not isinstance(coro, asyncio.Task):
             coro = asyncio.create_task(coro)

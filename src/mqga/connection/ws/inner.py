@@ -48,7 +48,7 @@ class WSInner:
         self._session_id = ""
 
         self._heartbeat_interval = 0
-        self._heartbeat_task: asyncio.Task = None
+        self._heartbeat_task: asyncio.Task | None = None
 
         self._user: User | None = None
 
@@ -107,6 +107,7 @@ class WSInner:
         self.state = WSState.Closed
 
     async def _send_payload(self, payload: Payload):
+        assert self.ws.client, "发送 payload 时 client 应该已经初始化"
         log.debug(payload.model_dump(by_alias=True))
         await self.ws.client.send(payload.model_dump_json(by_alias=True))
 
@@ -118,7 +119,8 @@ class WSInner:
 
     async def _heartbeat_loop(self):
         log.info("心砰砰地跳")
-        while self.ws.client.open:
+        client = self.ws.client
+        while client and client.open:
             await self.heartbeat()
             await asyncio.sleep(self._heartbeat_interval)
 
