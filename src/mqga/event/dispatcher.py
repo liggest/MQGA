@@ -268,7 +268,7 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     async def _reply_str(self, content: str, bot: Bot, payload: MessageEventPayloadT):
         dispatcher: MessageDispatcher = bot._em._dispatchers[payload.type]  # 回复来自各个渠道的消息
         if self is dispatcher:
-            return await bot.api.of(payload).reply_text(content, payload)
+            return await bot.api.of(payload).reply_text(payload, content)
         return await dispatcher._reply_str(content, bot, payload)
 
     # def register(self, box, bot: Bot, target: MessageEventPayloadT):
@@ -321,7 +321,7 @@ class ChannelAtMessageDispatcher(
         await super()._pre_dispatch(bot, target)
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.channel.reply_text(content, payload)
+        return await bot._api.channel.reply_text(payload, content)
 
     # async def dispatch(self, bot, payload):
     #     await super().dispatch(bot, payload)
@@ -342,7 +342,7 @@ class GroupAtMessageDispatcher(
         return bot._em.events.group_message
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.group.reply_text(content, payload)
+        return await bot._api.group.reply_text(payload, content)
 
 
 class PrivateMessageDispatcher(
@@ -353,7 +353,7 @@ class PrivateMessageDispatcher(
         return bot._em.events.private_message
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.private.reply_text(content, payload)
+        return await bot._api.private.reply_text(payload, content)
 
 
 class ChannelMessageReactionAddDispatcher(

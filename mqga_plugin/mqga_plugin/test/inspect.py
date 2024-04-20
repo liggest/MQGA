@@ -39,9 +39,9 @@ def test():
 
 async def reply_media_or_timeout(ctx: BotContext, url: str, content: str = "", file_type: FileType = FileType.图片):
     try:
-        await ctx.bot.api.reply_media(url, ctx.payload, content=content, file_type=file_type)
+        await ctx.bot.api.reply_media(ctx.payload, url, content=content, file_type=file_type)
     except httpx.ReadTimeout:
-        await ctx.bot.api.reply_text("超时啦 > <", ctx.payload)
+        await ctx.bot.api.reply_text(ctx.payload, "超时啦 > <")
 
 # @on_message.filter_by(lambda: (ctx.matched << ctx.message.content.strip().lower()).startswith("/img"))
 @on_message.filter_by(Filters.command("img", context=ctx))

@@ -54,13 +54,13 @@ class API:
                 return source
         raise ValueError(f"尚不支持把 {payload!r} 用于任何渠道的 api")
 
-    async def reply_text(self, content: str, payload: EventPayload):
+    async def reply_text(self, payload: EventPayload, content: str):
         """ 以文本回复消息、事件 """
-        return await self.of(payload).reply_text(content, payload)
+        return await self.of(payload).reply_text(payload, content)
 
-    async def reply_media(self, file_or_url: str | FileInfo, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片):
+    async def reply_media(self, payload: EventPayload, file_or_url: str | FileInfo, content: str = "", file_type: FileType = FileType.图片):
         """ 以富媒体（图文等）回复消息、事件 """
-        return await self.of(payload).reply_media(file_or_url, payload, content, file_type)
+        return await self.of(payload).reply_media(payload, file_or_url, content, file_type)
 
     async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom | None = None, keyboard: KeyboardTemplate | KeyboardCustom | None = None):
         """ 

@@ -49,7 +49,7 @@ def wait():
     import asyncio
     async def delay(seconds = 3):
         await asyncio.sleep(seconds)
-        await bot._api.group.reply_text(str(seconds), payload)
+        await bot.api.reply_text(payload, str(seconds))
     return delay()
 
 @on_message.full_match(r"数数")
@@ -58,7 +58,7 @@ def count():
     async def _do_count():
         reply = ctx.bot.api.of(ctx.payload).reply_text
         for i in range(10):
-            await reply(str(i), ctx.payload)
+            await reply(ctx.payload, str(i))
             await asyncio.sleep(1)
     return _do_count()
 
@@ -74,7 +74,7 @@ def bite():
         global bite_to
         from mqga.connection.api.client import APIError
         try:
-            await ctx.bot.api.reply_text("汪汪汪", bite_to)
+            await ctx.bot.api.reply_text(bite_to, "汪汪汪")
         except APIError:
             bite_to = None
     

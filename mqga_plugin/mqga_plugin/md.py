@@ -50,7 +50,7 @@ b3 = InteractButton("戳", "xyz", "嗷~")
 async def on_interact():
     # log.warning(repr(ctx.payload.data))
     payload: ButtonInteractEventPayload = ctx.payload
-    await ctx.bot.api.reply_text(payload.data.button.data, payload)
+    await ctx.bot.api.reply_text(payload, payload.data.button.data)
     return keyboard.InteractionResult.操作成功
 
 b4 = CommandButton("这是指令", "image https://cdn.233.momobako.com/ygopro/pics/1861629.jpg")

@@ -127,7 +127,7 @@ class UnifiedAPI:
         cls._sequences[payload] = _sequence + 1
         return data
 
-    async def reply_text(self, content: str, payload: EventPayload) -> RepliedMessage:  # TODO 调整 content 和 payload 的顺序
+    async def reply_text(self, payload: EventPayload, content: str) -> RepliedMessage:  # TODO 调整 content 和 payload 的顺序
         """ 以文本回复消息、事件 """
         return await self._post_source(f"/{self._to_id(payload)}/messages", data=self._message_data(
             content=content,
@@ -151,7 +151,7 @@ class UnifiedAPI:
             # "file_data":  暂未支持
         })
 
-    async def reply_media(self, file_or_url: str | FileInfo, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片) -> RepliedMessage:
+    async def reply_media(self, payload: EventPayload, file_or_url: str | FileInfo, content: str = "", file_type: FileType = FileType.图片) -> RepliedMessage:
         """ 以富媒体（图文等）回复消息、事件 """
         source_id = self._to_id(payload)
         if isinstance(file_or_url, str):
@@ -226,8 +226,8 @@ class ChannelAPI(UnifiedAPI):
     def _message_sequence_data(cls, data: dict, payload: EventPayload, _sequence = 1):
         return data  # channel 不用这个
 
-    async def reply_text(self, content: str, payload: EventPayload):
-        return ChannelMessage(**await super().reply_text(content, payload))
+    async def reply_text(self, payload: EventPayload, content: str):
+        return ChannelMessage(**await super().reply_text(payload, content))
 
     @staticmethod
     def _message_media_data(data: dict, media: str | None = None):
@@ -235,7 +235,7 @@ class ChannelAPI(UnifiedAPI):
             data["image"] = media
         return data
 
-    async def reply_media(self, file_or_url: str, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片):
+    async def reply_media(self, payload: EventPayload, file_or_url: str, content: str = "", file_type: FileType = FileType.图片):
         """ 
             以图文回复消息、事件 
             
