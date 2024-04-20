@@ -12,7 +12,7 @@ from mqga_plugin.toolz.markdown.keyboard import JumpButton, CommandButton, Inter
 
 md_test = register_markdown("测试模板", "测试用的模板", {"md7": "**", "md8": "你好，世界", "md9": "**"})
 
-split_ptn = re.compile(r"\*+|_+|#+|~+|\]\(|\d\.|-|>|`")
+split_ptn = re.compile(r"\*+|_+|#+|~+|\]\(|\d\.|-|>|`|//")
 
 def split_md(content: str):
     content = content.replace("\n\n", "\u200B")
