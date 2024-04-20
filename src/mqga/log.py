@@ -70,7 +70,7 @@ class MQGALog(object):
         self.logger.setLevel(logging.INFO)
 
     def get_file_handler(self):
-        filehandler = TimedRotatingFileHandler(filename=f"{PATH}dump.log", when="midnight", interval=1, backupCount=7)
+        filehandler = TimedRotatingFileHandler(filename=f"{PATH}dump.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
         filehandler.suffix = "%Y-%m-%d"
         filehandler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}$")
         filehandler.setFormatter(FileFormatter(File_FMT, DATEFMT))

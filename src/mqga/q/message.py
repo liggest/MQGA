@@ -1,6 +1,8 @@
 
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Annotated, Literal
 from datetime import datetime
+
+from pydantic import BaseModel, Field, ConfigDict
 
 class IDUser(BaseModel):
     """ 有 ID 的用户 """
@@ -278,3 +280,128 @@ class MessageReaction(BaseModel):
     """ 贴上的表情 """
 
 ChannelAndMessageID = ChannelMessage | MessageReaction
+
+from mqga.q.constant import InteractionType, ChatType
+# from mqga.q.constant import InteractionScene
+
+class ButtonData(BaseModel):
+    """ 按钮数据 """
+    model_config = ConfigDict(populate_by_name=True)
+
+    data: str = Field(alias="button_data")
+    """ 按钮中附带的回调数据 `action.data` """
+    id: str = Field(alias="button_id")
+    """ 按钮 ID """
+
+class ChannelButtonData(ButtonData):
+    """ 频道中消息按钮的数据 """
+    user_id: str
+    """ 按钮交互者的 ID """
+    message_id: str
+    """ 按钮载体消息的 ID """
+
+class PrivateMenuButtonData(ButtonData):
+    """ 私聊快捷菜单数据 """
+    feature_id: str
+    """ 菜单按钮 ID """
+
+# InteractionData
+#   ButtonInteractionData
+#       ChannelButtonInteractionData
+#   MenuInteractionData
+
+class InteractionData(BaseModel):
+    """ 交互数据 """
+    model_config = ConfigDict(populate_by_name=True)
+
+    button: ButtonData = Field(alias="resolved")
+    """ 按钮数据 """
+    type: InteractionType = InteractionType.消息按钮
+    """ 交互类型 """
+    
+class ButtonInteractionData(InteractionData):
+    """ 消息按钮交互数据 """
+    type: Literal[InteractionType.消息按钮] = InteractionType.消息按钮
+    """ 交互类型 """
+
+class ChannelButtonInteractionData(ButtonInteractionData):
+    """ 频道中消息按钮的交互数据 """
+    button: ChannelButtonData = Field(alias="resolved")
+    """ 按钮数据 """
+
+class MenuInteractionData(InteractionData):
+    """ 私聊快捷菜单交互数据 """
+    type: Literal[InteractionType.私聊快捷菜单] = InteractionType.私聊快捷菜单
+    """ 交互类型 """
+    button: PrivateMenuButtonData = Field(alias="resolved")
+    """ 按钮数据 """
+
+class ButtonInteraction(BaseModel):
+    """ 按钮交互（被点击） """
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: str
+    """ 事件 ID """
+    type: InteractionType = InteractionType.消息按钮
+    """ 交互类型 """
+    # scene: InteractionScene
+    # """ 交互场景 """
+    chat_type: ChatType
+    """ 聊天场景 """
+    data: InteractionData
+    """ 交互数据 """
+    version: int = 1
+    """ 版本号 """
+    application_id: str
+    """ bot 的 AppID """
+
+    @property
+    def button(self):  # 避免 payload.data.data.button
+        return self.data.button
+
+class ChannelButtonInteraction(ButtonInteraction):
+    """ 频道按钮交互 """
+    type: Literal[InteractionType.消息按钮] = InteractionType.消息按钮
+    """ 交互类型 """
+    chat_type: Literal[ChatType.Guild] = ChatType.Guild
+    """ 聊天场景 """
+    guild_id: str
+    """ 频道 ID """
+    channel_id: str
+    """ 子频道 ID """
+    data: ChannelButtonInteractionData
+    """ 交互数据 """
+
+    @property
+    def user_id(self) -> str:
+        """ 按钮交互者的 ID """
+        return self.data.button.user_id
+
+    @property
+    def message_id(self) -> str:
+        """ 按钮载体消息的 ID """
+        return self.data.button.message_id
+
+class GroupButtonInteraction(ButtonInteraction):
+    """ 群聊按钮交互 """
+    type: Literal[InteractionType.消息按钮] = InteractionType.消息按钮
+    """ 交互类型 """
+    chat_type: Literal[ChatType.Group] = ChatType.Group
+    """ 聊天场景 """
+    group_id: str = Field(alias="group_openid")
+    """ 群 openID """
+    user_id: str = Field(alias="group_member_openid")
+    """ 按钮交互者的 openID """
+    data: ButtonInteractionData
+    """ 交互数据 """
+
+class PrivateButtonInteraction(ButtonInteraction):
+    """ 私聊按钮交互 """
+    chat_type: Literal[ChatType.Private] = ChatType.Private
+    """ 聊天场景 """
+    user_id: str = Field(alias="user_openid")
+    """ 按钮交互者的 openID """
+    data: Annotated[ButtonInteractionData | MenuInteractionData, Field(discriminator="type")]
+    """ 交互数据 """
+
+ButtonInteractionT = Annotated[ChannelButtonInteraction | GroupButtonInteraction | PrivateButtonInteraction, Field(discriminator="chat_type")]

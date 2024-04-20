@@ -11,14 +11,14 @@ T = TypeVar("T", bound=Callable)
 
 from mqga.log import log
 from mqga.event.box import Box
-from mqga.event.event import MultiEvent, PlainReturns
+# from mqga.event.event import MultiEvent, PlainReturns
 from mqga.event.dispatcher import EventPayloadDispatcher, MessageDispatcher, event_dispatcher_cls
 from mqga.event.dispatcher import ChannelAtMessageDispatcher, GroupAtMessageDispatcher, PrivateMessageDispatcher
 from mqga.q.constant import EventType
-from mqga.q.message import Emoji
+# from mqga.q.message import Emoji
 from mqga.q.payload import EventPayload, event_payload_cls_from
 
-EmojiEvent = MultiEvent[[], Emoji | PlainReturns]
+# EmojiEvent = MultiEvent[[], Emoji | PlainReturns]
 
 def _deco_init(func: T):
     """ 装饰器首先执行的逻辑 """
@@ -146,7 +146,7 @@ class OnEventPayload:
             dispatcher_type = event_dispatcher_cls(event_payload_cls_from(type))
             log.warning(f"未定义处理 {type!r} 的特殊逻辑，使用自动生成的 {dispatcher_type!r}")
         
-        def inner(func: Callable[[], Emoji]):
+        def inner(func: Callable[[], None]):
             bot, box, dispatcher = _deco_init_dispatcher(func, dispatcher_type)
             dispatcher: EventPayloadDispatcher
             dispatcher.register(box, bot, None)  # 注册到特定的 EventPayloadDispatcher 子类

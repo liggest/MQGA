@@ -9,7 +9,14 @@ if TYPE_CHECKING:
     from mqga.q.message import IDUser
     from mqga.q.message import Emoji, ChannelAndMessageID
     from mqga.q.api import WSURL
-    from mqga.q.api import FileInfo, RepliedMessage
+    from mqga.q.api import FileInfo
+    from mqga.q.api import RepliedMessage
+    from mqga.q.api import MarkdownTemplate, MarkdownCustom, KeyboardTemplate, KeyboardCustom
+    from mqga.q.constant import InteractionResult
+    from mqga.q.payload import ButtonInteractEventPayload
+    
+    import httpx
+    UseClientDefault = httpx._client.UseClientDefault
 
 from mqga.log import log
 from mqga.q.message import Message, ChannelMessage
@@ -44,19 +51,19 @@ class UnifiedAPI:
     def _delete(self):
         return self.client._delete
 
-    async def _get_source(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _get_source(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._get(f"{self.Prefix}{api}", params=params, timeout=timeout, **kw)
 
-    async def _post_source(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post_source(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._post(f"{self.Prefix}{api}", data=data, timeout=timeout, **kw)
 
-    async def _put_source(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _put_source(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._put(f"{self.Prefix}{api}", data=data, timeout=timeout, **kw)
 
-    async def _delete_source(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _delete_source(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
         return await self.client._delete(f"{self.Prefix}{api}", params=params, timeout=timeout, **kw)
 
@@ -79,11 +86,10 @@ class UnifiedAPI:
         raise NotImplementedError(f"尚未实现将 {payload!r} 转换为 {cls.__name__} 的 id")
 
     @classmethod
-    def _message_data(cls, content: str, payload: EventPayload, type: MessageType, media: FileInfo = None, _sequence = 1):
+    def _message_data(cls, content: str, payload: EventPayload, type: MessageType, _sequence = 1):
         data = {"content": content}
         cls._message_type_data(data, type)
         cls._reply_id_data(data, payload)
-        cls._message_media_data(data, media)
         cls._message_sequence_data(data, payload, _sequence)
         return data
 
@@ -93,15 +99,18 @@ class UnifiedAPI:
         return data
 
     @staticmethod
-    def _reply_id_data(data: dict, payload: EventPayload):  # TODO 确定所有能回复的 payload 类型
+    def _reply_id_data(data: dict, payload: EventPayload):  
         if isinstance(payload.data, Message):
             data["msg_id"] = payload.data.id
         else:
-            data["event_id"] = payload.type
+            data["event_id"] = payload.id  # TODO 确定所有能回复的 payload 类型
+            # 目前好像是用 payload 最外面的 id
+            # getattr(payload.data, "id")
+            # (payload.id.split(":")[-1] if payload.id else None)
         return data
 
     @staticmethod
-    def _message_media_data(data: dict, media: FileInfo = None):
+    def _message_media_data(data: dict, media: FileInfo | None = None):
         if media:
             data["media"] = media
         return data
@@ -118,7 +127,7 @@ class UnifiedAPI:
         cls._sequences[payload] = _sequence + 1
         return data
 
-    async def reply_text(self, content: str, payload: EventPayload) -> RepliedMessage:
+    async def reply_text(self, payload: EventPayload, content: str) -> RepliedMessage:  # TODO 调整 content 和 payload 的顺序
         """ 以文本回复消息、事件 """
         return await self._post_source(f"/{self._to_id(payload)}/messages", data=self._message_data(
             content=content,
@@ -142,17 +151,56 @@ class UnifiedAPI:
             # "file_data":  暂未支持
         })
 
-    async def reply_media(self, file_or_url: str | FileInfo, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片) -> RepliedMessage:
+    async def reply_media(self, payload: EventPayload, file_or_url: str | FileInfo, content: str = "", file_type: FileType = FileType.图片) -> RepliedMessage:
         """ 以富媒体（图文等）回复消息、事件 """
         source_id = self._to_id(payload)
         if isinstance(file_or_url, str):
             file_or_url = await self.file(source_id, file_or_url, file_type)
-        return await self._post_source(f"/{source_id}/messages", data=self._message_data(
-            content=content,
-            media=file_or_url,
-            payload=payload,
-            type=MessageType.Media,  # TODO 其它消息类型
-        ))
+        data = self._message_data(content=content, payload=payload, type=MessageType.Media)
+        self._message_media_data(data, file_or_url)
+        return await self._post_source(f"/{source_id}/messages", data=data)
+    
+    # @staticmethod
+    # def _md_data(template: str, params: dict[str, str] = None, content: str = "") -> MarkdownTemplate | MarkdownContent:
+    #     if content:
+    #         if template:
+    #             log.warning(f"指定了原生 markdown 内容 {content = !r}, 将忽略模板 ID {template!r} 和参数 {params = !r}")
+    #         return {"content": content}
+    #     params = params or {}
+    #     return {
+    #         "custom_template_id": template,
+    #         "params": [
+    #             {"key": k, "values": [v]} for k, v in params.items()
+    #         ]
+    #     }
+
+    @staticmethod
+    def _message_md_data(data: dict, markdown: MarkdownTemplate | MarkdownCustom | None = None):
+        if markdown:
+            data["markdown"] = markdown
+        return data
+
+    @staticmethod
+    def _message_keyboard_data(data: dict, keyboard: KeyboardTemplate | KeyboardCustom | None = None):
+        if keyboard:
+            data["keyboard"] = keyboard
+        return data
+
+    async def reply_md(self, payload: EventPayload, markdown: MarkdownTemplate | MarkdownCustom | None = None, keyboard: KeyboardTemplate | KeyboardCustom | None = None)  -> RepliedMessage:
+        """ 
+            以 markdown 回复消息、事件\n
+            keyboard 为消息底部挂载的按钮
+        """
+        data = self._message_data(content="", payload=payload, type=MessageType.Markdown)
+        # md = self._md_data(template, params, content)
+        self._message_md_data(data, markdown)
+        self._message_keyboard_data(data, keyboard)
+        return await self._post_source(f"/{self._to_id(payload)}/messages", data=data)
+
+    async def button_interacted(self, payload: ButtonInteractEventPayload, result: InteractionResult) -> bool:
+        """ 向 QQ 告知按钮交互带来的 `payload` 事件已处理，结果为 `result`  """
+        return await self._put(f"/interactions/{payload.data.id}", data={ "code": result })
+
 
 class ChannelAPI(UnifiedAPI):
 
@@ -174,18 +222,32 @@ class ChannelAPI(UnifiedAPI):
             log.warning(f"{payload!r} 未能为 {data!r} 提供消息 ID，可能导致消息按主动消息而非回复消息发送")
         return data
 
-    async def reply_text(self, content: str, payload: EventPayload):
-        return ChannelMessage(**await super().reply_text(content, payload))
+    @classmethod
+    def _message_sequence_data(cls, data: dict, payload: EventPayload, _sequence = 1):
+        return data  # channel 不用这个
 
-    async def reply_media(self, file_or_url: str, payload: EventPayload, content: str = "", file_type: FileType = FileType.图片):
+    async def reply_text(self, payload: EventPayload, content: str):
+        return ChannelMessage(**await super().reply_text(payload, content))
+
+    @staticmethod
+    def _message_media_data(data: dict, media: str | None = None):
+        if media:
+            data["image"] = media
+        return data
+
+    async def reply_media(self, payload: EventPayload, file_or_url: str, content: str = "", file_type: FileType = FileType.图片):
         """ 
             以图文回复消息、事件 
             
             频道中 file_or_url 只能是 url(`str`)， file_type 固定为 FileType.图片
         """
-        data = {"content": content, "image": file_or_url}
-        self._reply_id_data(data, payload)
+        # 频道不需要用 await self.file 拿到 FileInfo
+        data = self._message_data(content=content, payload=payload, type=MessageType.Media)
+        self._message_media_data(data, file_or_url)
         return ChannelMessage(**await self._post_source(f"/{self._to_id(payload)}/messages", data=data))
+
+    async def reply_md(self, payload: EventPayload, md: MarkdownTemplate | MarkdownCustom | None = None, keyboard: KeyboardTemplate | KeyboardCustom | None = None):
+        return ChannelMessage(**await super().reply_md(payload, md, keyboard))  # 好像目前频道无法用被动消息回复 markdown
 
     def _reaction_url(self, message: ChannelAndMessageID, emoji: Emoji):
         if hasattr(message, "id"):
@@ -208,11 +270,13 @@ class ChannelAPI(UnifiedAPI):
         data = {"limit": per_page}
         result = await self._get_source(url, data)
         data.clear()
-        yield [User(**user) for user in result["users"]]
+        if users := result.get("users"):
+            yield [User(**user) for user in users]
         while not result["is_end"]:
             data["cookie"] = result["cookie"]
             result = await self._get_source(url, data)
-            yield [User(**user) for user in result["users"]]
+            if users := result.get("users"):
+                yield [User(**user) for user in users]
 
     async def reaction_get_head_users(self, message: ChannelAndMessageID, emoji: Emoji, limit = 20):
         """ 获取对消息贴表情的用户，最多只能得到前 20 个 """

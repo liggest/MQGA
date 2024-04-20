@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 from mqga.log import log
 from mqga.event.event import Box, Params, ReturnT, Event
 from mqga.event.handler import handle_awaitable, handle_str, handle_emoji_add, handle_emoji_remove
+from mqga.event.handler import handle_button_interact
 # from mqga.event.event import PlainReturns
 from mqga.event.space import MessageSpace
 from mqga.q.constant import EventType, OpCode
@@ -24,6 +25,7 @@ from mqga.q.payload import event_type_from, op_code_from
 from mqga.q.payload import Payload, EventPayload, ChannelAtMessageEventPayload
 from mqga.q.payload import ChannelMessageReactionAddEventPayload, ChannelMessageReactionRemoveEventPayload
 from mqga.q.payload import GroupAtMessageEventPayload, PrivateMessageEventPayload
+from mqga.q.payload import ButtonInteractEventPayload
 
 MessageEventPayload = ChannelAtMessageEventPayload | GroupAtMessageEventPayload | PrivateMessageEventPayload
 
@@ -266,7 +268,7 @@ class MessageDispatcher(EventPayloadDispatcher[MessageEventPayloadT, str]):
     async def _reply_str(self, content: str, bot: Bot, payload: MessageEventPayloadT):
         dispatcher: MessageDispatcher = bot._em._dispatchers[payload.type]  # 回复来自各个渠道的消息
         if self is dispatcher:
-            return await bot.api.of(payload).reply_text(content, payload)
+            return await bot.api.of(payload).reply_text(payload, content)
         return await dispatcher._reply_str(content, bot, payload)
 
     # def register(self, box, bot: Bot, target: MessageEventPayloadT):
@@ -319,7 +321,7 @@ class ChannelAtMessageDispatcher(
         await super()._pre_dispatch(bot, target)
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.channel.reply_text(content, payload)
+        return await bot._api.channel.reply_text(payload, content)
 
     # async def dispatch(self, bot, payload):
     #     await super().dispatch(bot, payload)
@@ -340,7 +342,7 @@ class GroupAtMessageDispatcher(
         return bot._em.events.group_message
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.group.reply_text(content, payload)
+        return await bot._api.group.reply_text(payload, content)
 
 
 class PrivateMessageDispatcher(
@@ -351,7 +353,7 @@ class PrivateMessageDispatcher(
         return bot._em.events.private_message
 
     async def _reply_str(self, content, bot, payload):
-        return await bot._api.private.reply_text(content, payload)
+        return await bot._api.private.reply_text(payload, content)
 
 
 class ChannelMessageReactionAddDispatcher(
@@ -378,6 +380,13 @@ class ChannelMessageReactionRemoveDispatcher(
     #     if isinstance(result, Emoji):
     #         return await bot._api.channel.reaction_delete(target.data, result)
     #     return await super()._handle_emit(result, bot, target)
+
+class ButtonInteractDispatcher(
+    EventPayloadDispatcher[ButtonInteractEventPayload, None]
+):
+    @classmethod
+    def _init_handlers(cls):
+        return [ handle_button_interact, *super()._init_handlers() ]
 
 def event_dispatcher_cls(payload_cls: type[Payload]):
     """ 从 payload_cls 动态创建 Dispatcher """

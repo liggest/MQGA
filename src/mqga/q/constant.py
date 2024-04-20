@@ -268,14 +268,15 @@ class EventType(str, Enum):
     """ 消息审核通过 """
     ChannelMessageAuditReject = "MESSAGE_AUDIT_REJECT"
     """ 消息审核否决 """
-    ChannelInteractionCreate = "INTERACTION_CREATE"
-    """ 用户点击消息中的按钮 """
     ChannelCreate = "CHANNEL_CREATE"
     """ 子频道被创建 """
     ChannelUpdate = "CHANNEL_UPDATE"
     """ 子频道信息变化 """
     ChannelDelete = "CHANNEL_DELETE"
     """ 子频道被删除 """
+
+    ButtonInteract = "INTERACTION_CREATE"  # 暂时叫这个
+    """ 用户点击消息中的回调按钮 """
 
     # 音视频、直播子频道
     AudioOrLiveMemberEnter = "AUDIO_OR_LIVE_CHANNEL_MEMBER_ENTER"
@@ -379,7 +380,7 @@ class EventType2Intent(EventPair, Enum):
     AUDIO_OR_LIVE_CHANNEL_MEMBER_ENTER = (Intents.AUDIO_OR_LIVE_CHANNEL_MEMBER, EventType.AudioOrLiveMemberEnter)
     AUDIO_OR_LIVE_CHANNEL_MEMBER_EXIT  = (Intents.AUDIO_OR_LIVE_CHANNEL_MEMBER, EventType.AudioOrLiveMemberExit)
 
-    INTERACTION_CREATE = (Intents.INTERACTION, EventType.ChannelInteractionCreate)
+    INTERACTION_CREATE = (Intents.INTERACTION, EventType.ButtonInteract)
 
     MESSAGE_AUDIT_PASS   = (Intents.MESSAGE_AUDIT, EventType.ChannelMessageAuditPass)
     MESSAGE_AUDIT_REJECT = (Intents.MESSAGE_AUDIT, EventType.ChannelMessageAuditReject)
@@ -455,3 +456,61 @@ class FileType(IntEnum):
     语音 = 3
     """ silk """ 
     文件 = 4
+    """ 暂不开放 """
+
+class InteractionType(IntEnum):
+    """ 交互类型 """
+    消息按钮 = 11
+    私聊快捷菜单 = 12
+
+# class InteractionScene(str, Enum):
+#     """ 交互场景 """
+#     Private = "c2c"
+#     """ 私聊 """
+#     Group = "group"
+#     """ 群聊 """
+#     Guild = "guild"
+#     """ 频道 """
+
+class ChatType(IntEnum):
+    """ 聊天场景 """
+    Guild = 0
+    """ 频道 """
+    Group = 1
+    """ 群聊 """
+    Private = 2
+    """ 私聊 """
+
+class ButtonStyle(IntEnum):
+    """ 按钮样式 """
+    Gray = 0
+    """ 灰色线框 """
+    Blue = 1
+    """ 蓝色线框 """
+
+class ButtonActionType(IntEnum):
+    """ 按钮动作类型 """
+    跳转 = 0
+    """ 链接等 """
+    回调 = 1
+    """ 会触发按下回调按钮的事件 """
+    指令 = 2
+    """ 会自动输入设定好的指令 """
+
+class ButtonPermissionType(IntEnum):
+    """ 按钮权限类型 """
+    指定用户 = 0
+    管理员 = 1
+    所有人 = 2
+    指定身份组 = 3
+    """ 仅限频道 """
+
+class InteractionResult(IntEnum):
+    """ 交互结果 """
+    操作成功 = 0
+    操作失败 = 1
+    操作频繁 = 2
+    重复操作 = 3
+    没有权限 = 4
+    仅管理员 = 5
+    """ 仅管理员操作 """

@@ -10,6 +10,7 @@ from mqga.q.constant import OpCode, Intents, EventType
 from mqga.q.message import ChannelMessage, GroupMessage, PrivateMessage
 from mqga.q.message import User
 from mqga.q.message import MessageReaction
+from mqga.q.message import ButtonInteractionT
 
 def _real_name(name: str):
     return {"op_code": "op", "data": "d", "seq_no": "s", "type": "t"}.get(name, name)
@@ -52,6 +53,8 @@ class EventPayload(Payload):
     """ 事件类型 """
     data: dict
     """ 事件数据 """
+    id: str | None = None
+    """ 事件 ID """
 
     def __hash__(self) -> int:
         return hash((self.type, self.seq_no))
@@ -138,6 +141,10 @@ class ChannelMessageReactionAddEventPayload(EventPayload):
 class ChannelMessageReactionRemoveEventPayload(EventPayload):
     type: Literal[EventType.ChannelMessageReactionRemove] = EventType.ChannelMessageReactionRemove
     data: MessageReaction
+
+class ButtonInteractEventPayload(EventPayload):
+    type: Literal[EventType.ButtonInteract] = EventType.ButtonInteract
+    data: ButtonInteractionT
 
 # EventPayloads = ReadyEventPayload | ResumedEventPayload | ChannelAtMessageEventPayload
 

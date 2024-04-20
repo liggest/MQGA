@@ -6,11 +6,13 @@ import time
 import json
 
 from typing import TYPE_CHECKING
+
+import httpx
+
 if TYPE_CHECKING:
     from mqga.bot import Bot
     from mqga.q.api import AccessToken
-
-import httpx
+    UseClientDefault = httpx._client.UseClientDefault
 
 from mqga import LEGACY
 from mqga.log import log
@@ -42,7 +44,7 @@ class APIClient:
         self._expire_time = 0
         self._fetch_time = 0
 
-        self._client: httpx.AsyncClient = None
+        self._client: httpx.AsyncClient | None = None
 
     if LEGACY:
         @property
@@ -90,23 +92,27 @@ class APIClient:
         def _base_url(self):
             return r"https://api.sgroup.qq.com/"
 
-    async def _get(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _get(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        assert self._client, "发送请求时 client 应该已存在"
         log.debug(f"GET {api} {params!r}")
         return self._handle_response(await self._client.get(api, params=params, timeout=timeout, **kw))
 
-    async def _post(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        assert self._client, "发送请求时 client 应该已存在"
         log.debug(f"POST {api} {data!r}")
         return self._handle_response(await self._client.post(api, json=data, timeout=timeout, **kw))
 
-    async def _put(self, api: str, data: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _put(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        assert self._client, "发送请求时 client 应该已存在"
         log.debug(f"PUT {api} {data!r}")
         return self._handle_response(await self._client.put(api, json=data, timeout=timeout, **kw))
 
-    async def _delete(self, api: str, params: dict = None, timeout: float = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _delete(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
+        assert self._client, "发送请求时 client 应该已存在"
         log.debug(f"DELETE {api} {params!r}")
         return self._handle_response(await self._client.delete(api, params=params, timeout=timeout, **kw))
 
@@ -116,7 +122,7 @@ class APIClient:
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
             http_error = e
-        if response.status_code == 204: # 无数据
+        if response.status_code == 204 or not response.content: # 无数据
             return True
         try:
             data: dict = response.json()

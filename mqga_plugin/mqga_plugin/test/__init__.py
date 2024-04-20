@@ -1,6 +1,4 @@
-from mqga.log import log
-log.debug("Test！ Test！")
 
-from . import config
+from . import config, debug, inspect
 
-__all__ = ["config"]
+__all__ = ["config", "inspect", "debug"]

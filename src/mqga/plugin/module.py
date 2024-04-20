@@ -39,7 +39,7 @@ class PluginModule(types.ModuleType, metaclass=PluginModuleMeta):
         """ 插件路径 """
         return Path(self.__file__) if not self.__file__.endswith("__init__.py") else Path(self.__file__).parent
 
-    @property
+    @cached_property
     def data_dir(self):
         """ 插件数据目录 """
         path = Path(f"./data/{self.path.stem}")
@@ -47,7 +47,7 @@ class PluginModule(types.ModuleType, metaclass=PluginModuleMeta):
         log.debug(f"确保插件 {self.name} 的数据目录 {path.as_posix()} 存在")
         return path
     
-def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA 插件"):
+def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA 插件") -> type[PluginModule]:
     """ 设置插件信息 """
     frame = inspect.currentframe() # 找到调用函数所在的模块
     while not frame.f_code.co_name == "<module>":
@@ -70,7 +70,7 @@ def plugin_info(name="", author="", version="0.0.1", description="一般 MQGA �
     cls = sys.modules[module_name].__class__ = types.new_class(class_name, (PluginModule,), exec_body=class_body)
     return cls
 
-def _to_plugin_module(module: types.ModuleType, path: Path):
+def _to_plugin_module(module: types.ModuleType, path: Path) -> PluginModule:
     """ 将 module 转换为默认名称的插件模块 """
     name = path.name.removesuffix(".py")
     class_name = f"{name.capitalize()}PluginModule"

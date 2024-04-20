@@ -165,7 +165,11 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-config*.toml
+# config*.toml
+/*.toml
+!pdm.toml
+!pyproject.toml
+# All tomls in root directory, except pdm.toml & pyproject.toml
 
 /log
 /data
