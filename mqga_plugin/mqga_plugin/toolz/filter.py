@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from typing import Callable
     from mqga.lookup.context import BotContext
 
 class Filter:
@@ -14,14 +15,18 @@ class Filter:
     def __call__(self) -> bool:
         return False
     
-    def __and__(self, other: Filter) -> Filter:
+    def __and__(self, other: Callable[[], bool]) -> AndFilter:
         if isinstance(other, Filter):
             return AndFilter(self, other)
+        elif callable(other):
+            return AndFilter(self, PlainFilter(other))
         return NotImplemented
 
-    def __or__(self, other: Filter) -> Filter:
+    def __or__(self, other: Callable[[], bool]) -> OrFilter:
         if isinstance(other, Filter):
             return OrFilter(self, other)
+        elif callable(other):
+            return OrFilter(self, PlainFilter(other))
         return NotImplemented
 
     def __repr__(self) -> str:
@@ -62,6 +67,18 @@ class OrFilter(Filter):
     
     def __repr__(self) -> str:
         return " | ".join(repr(f) for f in self.filters)
+
+class PlainFilter(Filter):
+
+    def __init__(self, func: Callable[[], bool], context: BotContext = None):
+        super().__init__(context)
+        self.func = func
+
+    def __call__(self) -> bool:
+        return self.func()
+    
+    def __repr__(self) -> str:
+        return f"{super().__repr__()}({self.func!r})"
 
 class PrefixFilter(Filter):
 
