@@ -3,12 +3,6 @@ from mqga import context as ctx, on_message, channel_only, group_only
 from mqga import on_event, EventType
 from mqga.log import log
 
-from mqga_plugin.toolz import Filters
-from mqga.q.constant import FileType
-from mqga.lookup.context import BotContext
-
-import httpx
-
 # from mqga.event.on import on_group_message, on_message, on_channel_message
 
 @on_event.of(EventType.WSReady)
@@ -42,40 +36,21 @@ with group_only:
     def dollar():
         return "🉑"
 
-async def reply_media_or_timeout(ctx: BotContext, url: str, content: str = "", file_type: FileType = FileType.图片):
-    try:
-        await ctx.bot.api.reply_media(url, ctx.payload, content=content, file_type=file_type)
-    except httpx.ReadTimeout:
-        await ctx.bot.api.reply_text("超时啦 > <", ctx.payload)
-
-# @on_message.filter_by(lambda: (ctx.matched << ctx.message.content.strip().lower()).startswith("/img"))
-@on_message.filter_by(Filters.command("img", context=ctx))
-@on_message.filter_by(Filters.command("image", context=ctx))
-async def img():
-    # cmd: str = ctx.matched.filter_by[0]
-    # url = cmd.removeprefix("/img").lstrip()
-    url = ctx.matched.filter_by[-1]
-    # file = await ctx.bot.api.group.file(ctx.in_group.message.group_id, url)
-    # log.debug(f"FileInfo: {file!r}")
-    # return ctx.bot.api.group.reply_media(file, ctx.payload)
-    # return ctx.bot.api.reply_media(url, ctx.payload)
-    return reply_media_or_timeout(ctx, url)
-
-@on_message.filter_by(Filters.command("audio", context=ctx))
-async def audio():
-    url = ctx.matched.filter_by[-1]
-    return reply_media_or_timeout(ctx, url, file_type=FileType.语音)
-
-@on_message.filter_by(Filters.command("video", context=ctx))
-async def video():
-    url = ctx.matched.filter_by[-1]
-    return reply_media_or_timeout(ctx, url, file_type=FileType.视频)
-
 @on_message.regex(r"[/]?(lr|左右)\s*(?P<left>\S+)?\s*(?P<right>\S+)?")
 async def lr():
     match = ctx.matched.regex
     left, right = match.group('left'), match.group('right')
     return f"{left = !r}  {right = !r}"
+
+@on_message.full_match(r"wait")
+def wait():
+    bot = ctx.bot
+    payload = ctx.payload
+    import asyncio
+    async def delay(seconds = 3):
+        await asyncio.sleep(seconds)
+        await bot._api.group.reply_text(str(seconds), payload)
+    return delay()
 
 @on_message.full_match(r"数数")
 def count():
