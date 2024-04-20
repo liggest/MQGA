@@ -45,7 +45,7 @@ class MarkdownItem(Item):
     
     def with_params(self, params: dict[str, str | list[str]]):
         """ 生成带参数的 markdown 模板 """
-        return by_template(self.id, {**self.default_params, **params})
+        return by_template(self.id, {**(self.default_params or {}), **params})
 
     def reply_to(self, payload: EventPayload, params: dict[str, str | list[str]] | None = None, keyboard: KeyboardItem | None = None):
         if params:
