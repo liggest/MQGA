@@ -31,7 +31,7 @@ class CaesarCipherInfo:
         replaced_str = self.original_string.translate(trans_table)
 
         # 移位操作
-        self.final_answer = ''.join(
+        self.final_answer: str = ''.join(
             chr((ord('a') + (ord(char) - ord('a') + self.offset) % 26) if char.isalpha() else char)
             for char in replaced_str
         )
@@ -92,11 +92,8 @@ class LANGameManager:
 
     def can_login(self, group_id, password)->bool:
         """ 验证密码并更新状态 """
-        correct_password = self.group_passwords.get(group_id) #TODO:如果用户上来输入一个空，是不是也可以？
-        if password == correct_password:
-            return True
-        else:
-            return False
+        correct_password = self.group_passwords.get(group_id)
+        return password and password == correct_password
     
     def roll(self):
         content = '你连接到了一台掷骰子的主机\n'
@@ -105,43 +102,58 @@ class LANGameManager:
     
     def clue(self, group_id) -> str:
         """ 根据调用次数返回不同类型的数据 """
-        # TODO:计数还是不大对，一个人反复访问三次一个地址也可以，不过也不错
+        # 计数还是不大对，一个人反复访问三次一个地址也可以，不过也不错
         cipher_info = self.caesar_cipher_info[group_id]
         call_count = self.clue_call_count[group_id]
         self.clue_call_count[group_id] += 1
 
         content = '你连接到了一台有线索的主机\n'
 
+        hint = "\n此处已获得该线索"  # 已经获得过相关线索的情况下，追加这个提示
         if call_count % 3 == 0:
             # 第一次调用，返回字母字符串
-            cipher_info.original_string = self.generate_random_string()
-            return content+"线索1："+cipher_info.original_string
+            if not cipher_info.original_string:
+                hint = ""
+                cipher_info.original_string = self.generate_random_string()
+            return content + "线索1：" + cipher_info.original_string + hint
         elif call_count % 3 == 1:
             # 第二次调用，返回数字
-            cipher_info.offset = self.generate_random_number()
-            return content+"线索2："+str(cipher_info.offset)
+            if not cipher_info.offset:
+                hint = ""
+                cipher_info.offset = self.generate_random_number()
+            return content + "线索2：" + str(cipher_info.offset) + hint
         else:
             # 第三次调用，返回替换对
-            cipher_info.replacement_pair = self.generate_replacement_pair()
-            answer = cipher_info.generate_final_answer() 
-            self.group_passwords[group_id] = answer
-            log.info(f"解密结果：{answer}")
-            
-            return content+"线索3："+f'{cipher_info.replacement_pair}\n'+'三条线索已找齐'
+            if not all(cipher_info.replacement_pair):
+                hint = "\n三条线索已找齐"
+                cipher_info.replacement_pair = self.generate_replacement_pair(cipher_info.original_string)
+                answer = cipher_info.generate_final_answer() 
+                self.group_passwords[group_id] = answer
+            else:
+                hint += "，三条线索已找齐"
+            log.info(f"解密结果：{self.group_passwords[group_id]}")
+            return content + "线索3：" + str(cipher_info.replacement_pair) + hint
 
     def generate_random_string(self, length_range=(5, 8)):
         """ 生成随机字母组成的字符串 """
         length = random.randint(*length_range)
         return ''.join(random.choice(string.ascii_lowercase) for _ in range(length))
 
-    def generate_random_number(self, number_range=(1, 10)):
+    def generate_random_number(self, number_range=(-10, 10)):
         """ 生成随机数字 """
-        # TODO:应该正负都有可能
-        return random.randint(*number_range)
+        n = random.randint(*number_range)
+        while not n:
+            n = random.randint(*number_range)
+        return n
 
-    def generate_replacement_pair(self):
+    def generate_replacement_pair(self, original_string: str):
         """ 生成随机替换对 """
-        a, b = random.sample(string.ascii_lowercase, 2)
+        uniques = set(original_string)
+        if len(uniques) < 2:
+            a = uniques.pop()   # 极端情况，如 aaaaa
+            b = random.choice(string.ascii_lowercase.replace(a, ''))  # 当前字母替换成某随机字母
+        else:
+            a, b = random.sample(uniques, 2) # 原字符串中随机两个不同字母对换
         return (a, b)
 
     def clue_cheat(self, group_id):
