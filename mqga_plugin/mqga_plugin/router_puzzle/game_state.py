@@ -1,12 +1,6 @@
-from mqga.plugin import plugin_info
-from mqga_plugin.game_state_manager import group_game_state_manager, GameState
+""" 返回游戏的状态 """
 
-plugin_info(
-    name="game_state",
-    author="duolanda",
-    version="0.0.1",
-    description="返回游戏的状态"
-)
+from mqga_plugin.router_puzzle.game_state_manager import group_game_state_manager, GameState
 
 from mqga import group_context as ctx, on_message
 from mqga.q.message import ChannelMessage, GroupMessage
