@@ -110,8 +110,12 @@ async def task():
     try:
         exec(script, env)
         result = await env["task"]()
-        if not isinstance(result, str):
-            result = repr(result)
-        return result
+
     except Exception as e:
-        return "\n".join(traceback.format_exception(e)).replace(".", "[.]")
+        result = e
+        store["ERROR"] = e
+        # return "\n".join(traceback.format_exception(e)).replace(".", "[.]")
+    if not isinstance(result, str):
+        result = repr(result)
+    result = result.replace(".", "[.]")
+    return result
