@@ -2,8 +2,8 @@
 import re
 
 from mqga import on_message, context as ctx
-# from mqga.log import log
-
+from mqga.log import log
+from mqga.connection.api.client import APIError
 from mqga.q.payload import ButtonInteractEventPayload
 
 from mqga_plugin.toolz import Filters
@@ -15,7 +15,7 @@ md_test = register_markdown("测试模板", "测试用的模板", {"md7": "**", 
 split_ptn = re.compile(r"\*+|_+|#+|~+|\]\(|\d\.|-|>|`|//")
 
 def split_md(content: str):
-    content = content.replace("\n\n", "\u200B")
+    content = content.replace("\n", "\r")
     idx = 0
     current = ""
     for match in split_ptn.finditer(content):
@@ -29,11 +29,18 @@ def split_md(content: str):
         current += content[idx:]
         yield current
 
+async def report_api_error(coro):
+    try:
+        return await coro
+    except APIError as e:
+        log.exception("", exc_info=e)
+        return await ctx.bot.api.reply_text(ctx.payload, repr(e))
+
 @on_message.filter_by(Filters.command("md", context=ctx))
 async def md():
     md_content: str = ctx.matched.filter_by[-1]
     params = {f"md{i}": part for i, part in enumerate(split_md(md_content))}
-    return md_test.reply_to(ctx.payload, params)
+    return report_api_error(md_test.reply_to(ctx.payload, params))
 
 
 b1 = JumpButton("MQGA!", "https://github.com/liggest/MQGA")
@@ -64,5 +71,7 @@ b5.pressed_text = "按下去了！"
 async def key():
     md_content: str = ctx.matched.filter_by[-1]
     params = {f"md{i}": part for i, part in enumerate(split_md(md_content))}
-    return ctx.bot.api.reply_md(ctx.payload, md_test.with_params(params), keyboard.by_buttons([b1, b2], [b3]))
+    return report_api_error(
+        ctx.bot.api.reply_md(ctx.payload, md_test.with_params(params), keyboard.by_buttons([b1, b2], [b3]))
+    )
     # return ctx.bot.api.reply_md(ctx.payload, md_test.with_params(params), keyboard.by_buttons([b4, b5]))
