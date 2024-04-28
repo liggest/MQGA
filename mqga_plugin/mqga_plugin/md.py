@@ -15,7 +15,7 @@ md_test = register_markdown("测试模板", "测试用的模板", {"md7": "**", 
 split_ptn = re.compile(r"\*+|_+|#+|~+|\]\(|\d\.|-|>|`|//")
 
 def split_md(content: str):
-    content = content.replace("\n\n", "\u200B")
+    content = content.replace("\n", "\r")
     idx = 0
     current = ""
     for match in split_ptn.finditer(content):
