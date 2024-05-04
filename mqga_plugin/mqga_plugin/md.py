@@ -29,6 +29,9 @@ def split_md(content: str):
         current += content[idx:]
         yield current
 
+def content2params(content: str):
+    return {f"md{i}": part for i, part in enumerate(split_md(content))}
+
 async def report_api_error(coro):
     try:
         return await coro
@@ -39,7 +42,7 @@ async def report_api_error(coro):
 @on_message.filter_by(Filters.command("md", context=ctx))
 async def md():
     md_content: str = ctx.matched.filter_by[-1]
-    params = {f"md{i}": part for i, part in enumerate(split_md(md_content))}
+    params = content2params(md_content)
     return report_api_error(md_test.reply_to(ctx.payload, params))
 
 
