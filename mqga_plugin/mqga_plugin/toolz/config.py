@@ -1,4 +1,6 @@
 
+from typing_extensions import Self
+from typing import ClassVar
 from pathlib import Path
 
 import tomli_w
@@ -14,6 +16,8 @@ def SimpleConfig(paths: str | Path | list[Path] = "plugin.toml"):
     class BaseConfig(BaseSettings):
         model_config = SettingsConfigDict(toml_file=paths)
 
+        _instance: ClassVar[Self | None] = None
+
         @classmethod
         def settings_customise_sources(
             cls,
@@ -25,6 +29,17 @@ def SimpleConfig(paths: str | Path | list[Path] = "plugin.toml"):
         ) -> tuple[PydanticBaseSettingsSource, ...]:
             return (TomlConfigSettingsSource(settings_cls), init_settings)
         
+        @classmethod
+        def is_init(cls):
+            return cls._instance is not None
+
+        @classmethod
+        def get(cls):
+            """ 创建或获取一个配置对象 """
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
+
         def save(self, path: Path = None):
             """ 如果当前配置不为空，保存至配置文件 """
             if path is None:

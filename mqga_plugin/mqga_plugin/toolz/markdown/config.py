@@ -109,24 +109,15 @@ class Config(SimpleConfig("markdown.toml")):
         _map[name] = item
         return item
 
-_config: Config = None
-
-def _init_config():
-    global _config
-    if _config is None:
-        _config = Config()
-
 def register_markdown(name: str, description: str | None = None, default_params: dict[str, str] | None = None) -> MarkdownItem:
     """ 注册一个 markdown 模板到配置文件 """
-    _init_config()
-    return _config.register("markdown", name, description, default_params=default_params)
+    return Config.get().register("markdown", name, description, default_params=default_params)
 
 def register_keyboard(name: str, description: str | None = None) -> KeyboardItem:
     """ 注册一个按钮模板到配置文件 """
-    _init_config()
-    return _config.register("keyboard", name, description)
+    return Config.get().register("keyboard", name, description)
 
 @on_event.of(EventType.WSReady)
 def _ready():
-    if _config:
-        _config.save()  # 加载完成时更新配置文件
+    if Config.is_init():
+        Config.get().save()  # 加载完成时更新配置文件

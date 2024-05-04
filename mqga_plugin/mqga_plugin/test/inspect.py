@@ -71,14 +71,10 @@ class Config(SimpleConfig(this_plugin.data_dir / "admin.toml")):
         "12345": [IDUser(id="ABCDE")]
     }
 
-_config = None
-
 def _get_config():
-    global _config
-    if _config is None:
-        _config = Config()
-        _config.save()
-    return _config
+    if not Config.is_init():
+        Config.get().save()
+    return Config._instance
 
 def is_admin():
     _config = _get_config()
