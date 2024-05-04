@@ -8,9 +8,11 @@ from anyio import Path as aPath
 
 from mqga_plugin.static.config import StaticConfig, static
 
-async def store(name: str, data: BytesIO):
+async def store(name: str, data: BytesIO | bytes):
     """ 在 data/static 以名称 name 存放文件 data  """
     config = StaticConfig.get()
+    if isinstance(data, bytes):
+        data = BytesIO(data)
     if not config.base_url or not config.csrf:
         path = aPath(static.data_dir / name)
         async with await path.open("wb") as f:
