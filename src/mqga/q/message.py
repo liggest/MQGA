@@ -288,7 +288,7 @@ class ButtonData(BaseModel):
     """ 按钮数据 """
     model_config = ConfigDict(populate_by_name=True)
 
-    data: str = Field(alias="button_data")
+    data: str = Field(alias="button_data", default="")
     """ 按钮中附带的回调数据 `action.data` """
     id: str = Field(alias="button_id")
     """ 按钮 ID """
