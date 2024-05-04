@@ -66,6 +66,12 @@ def video(url=""):
     url = url or ctx.matched.filter_by[-1]
     return reply_media_or_timeout(ctx, url, file_type=FileType.视频)
 
+if TYPE_CHECKING:
+    from typing import Coroutine, Callable, Any
+    image: Callable[[str], Coroutine[Any, Any, None]]
+    audio: Callable[[str], Coroutine[Any, Any, None]]
+    video: Callable[[str], Coroutine[Any, Any, None]]
+
 class Config(SimpleConfig(this_plugin.data_dir / "admin.toml")):
     groups: dict[str, list[IDUser]] = {
         "12345": [IDUser(id="ABCDE")]
