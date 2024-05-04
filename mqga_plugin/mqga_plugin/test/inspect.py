@@ -46,10 +46,10 @@ async def reply_media_or_timeout(ctx: BotContext, url: str, content: str = "", f
 # @on_message.filter_by(lambda: (ctx.matched << ctx.message.content.strip().lower()).startswith("/img"))
 @on_message.filter_by(Filters.command("img", context=ctx))
 @on_message.filter_by(Filters.command("image", context=ctx))
-async def img():
+def image(url=""):
     # cmd: str = ctx.matched.filter_by[0]
     # url = cmd.removeprefix("/img").lstrip()
-    url = ctx.matched.filter_by[-1]
+    url = url or ctx.matched.filter_by[-1]
     # file = await ctx.bot.api.group.file(ctx.in_group.message.group_id, url)
     # log.debug(f"FileInfo: {file!r}")
     # return ctx.bot.api.group.reply_media(file, ctx.payload)
@@ -57,13 +57,13 @@ async def img():
     return reply_media_or_timeout(ctx, url)
 
 @on_message.filter_by(Filters.command("audio", context=ctx))
-async def audio():
-    url = ctx.matched.filter_by[-1]
+def audio(url=""):
+    url = url or ctx.matched.filter_by[-1]
     return reply_media_or_timeout(ctx, url, file_type=FileType.语音)
 
 @on_message.filter_by(Filters.command("video", context=ctx))
-async def video():
-    url = ctx.matched.filter_by[-1]
+def video(url=""):
+    url = url or ctx.matched.filter_by[-1]
     return reply_media_or_timeout(ctx, url, file_type=FileType.视频)
 
 class Config(SimpleConfig(this_plugin.data_dir / "admin.toml")):
