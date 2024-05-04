@@ -3,6 +3,9 @@ from mqga.q.constant import EventType
 from mqga.q.message import MessageReaction
 from mqga.log import log
 
+from mqga.plugin import plugin_info
+plugin_info("re_react", author="liggest", description="跟风贴表情")
+
 @on_event
 def log_event():
     log.debug(f"收到事件：{ctx.payload.type}")

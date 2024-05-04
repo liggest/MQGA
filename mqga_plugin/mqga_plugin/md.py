@@ -10,6 +10,9 @@ from mqga_plugin.toolz import Filters
 from mqga_plugin.toolz.markdown import register_markdown, keyboard
 from mqga_plugin.toolz.markdown.keyboard import JumpButton, CommandButton, InteractButton
 
+from mqga.plugin import plugin_info
+plugin_info("md_test", author="liggest", description="测试 MD 和按钮")
+
 md_test = register_markdown("测试模板", "测试用的模板", {"md7": "**", "md8": "你好，世界", "md9": "**"})
 
 split_ptn = re.compile(r"\*+|_+|#+|~+|\]\(|\d\.|-|>|`|//")
