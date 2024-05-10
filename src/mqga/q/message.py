@@ -52,11 +52,11 @@ class Attachment(UrlAttachment):
     """ 附件类型 """
     filename: str
     """ 文件名 """
-    width: str
+    width: str | int
     """ 宽 """
-    height: str
+    height: str | int
     """ 高 """
-    size: str
+    size: str | int
     """ 大小 """
 
 class MessageEmbedThumbnail(BaseModel):
