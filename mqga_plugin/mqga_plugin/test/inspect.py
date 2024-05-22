@@ -37,9 +37,9 @@ def test():
 {message.attachments = !r}""".replace(".", "[.]")
 
 
-async def reply_media_or_timeout(ctx: BotContext, url: str, content: str = "", file_type: FileType = FileType.图片):
+async def reply_media_or_timeout(ctx: BotContext, file_or_url: str | bytes, content: str = "", file_type: FileType = FileType.图片):
     try:
-        await ctx.bot.api.reply_media(ctx.payload, url, content=content, file_type=file_type)
+        await ctx.bot.api.reply_media(ctx.payload, file_or_url, content=content, file_type=file_type)
     except httpx.ReadTimeout:
         await ctx.bot.api.reply_text(ctx.payload, "超时啦 > <")
 
