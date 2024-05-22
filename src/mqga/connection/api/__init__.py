@@ -58,7 +58,7 @@ class API:
         """ 以文本回复消息、事件 """
         return await self.of(payload).reply_text(payload, content)
 
-    async def reply_media(self, payload: EventPayload, file_or_url: str | FileInfo, content: str = "", file_type: FileType = FileType.图片):
+    async def reply_media(self, payload: EventPayload, file_or_url: str | FileInfo | bytes, content: str = "", file_type: FileType = FileType.图片):
         """ 以富媒体（图文等）回复消息、事件 """
         return await self.of(payload).reply_media(payload, file_or_url, content, file_type)
 
