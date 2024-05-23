@@ -13,6 +13,7 @@ DEFAULT_LOGGER_NAME = "MQGA"
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 COLORS = {
+    'TEMP': CYAN,
     'WARNING': YELLOW,
     'INFO': GREEN,
     'DEBUG': BLUE,
@@ -54,28 +55,33 @@ class FileFormatter(logging.Formatter):
         record.pathname = record.pathname.replace(BOOTPath, ".")
         return logging.Formatter.format(self, record)
 
+class MQGALog(logging.Logger):
+    TempLevel = 5
 
-class MQGALog(object):
     def __init__(self):
         if not os.path.exists(PATH):
             os.mkdir(PATH)
-        self.logger = logging.getLogger(DEFAULT_LOGGER_NAME)
-        # self.file_formatter = logging.Formatter(fmt=File_FMT, datefmt=DATEFMT)
+        super().__init__(self,logging.INFO)
+        self.name = DEFAULT_LOGGER_NAME
+        logging.addLevelName(self.TempLevel, "TEMP")
     
         self.file_handler = self.get_file_handler()
+        self.file_handler.setLevel(logging.INFO)
         self.std_handler = self.get_console_handler(False)
-        self.logger.addHandler(self.file_handler)
-        self.logger.addHandler(self.std_handler)
+        self.std_handler.setLevel(logging.DEBUG)
+        self.addHandler(self.file_handler)
+        self.addHandler(self.std_handler)
+        self.setLevel(logging.INFO)
 
-        self.logger.setLevel(logging.INFO)
+    def temp(self, message, *args, **kws):
+        self.log(self.TempLevel, message, *args, **kws)
 
     def get_file_handler(self):
         filehandler = TimedRotatingFileHandler(filename=f"{PATH}dump.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
-        filehandler.suffix = "%Y-%m-%d"
-        filehandler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        filehandler.suffix = "%Y-%m-%d.log"
+        filehandler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}\.log$")
         filehandler.setFormatter(FileFormatter(File_FMT, DATEFMT))
         return filehandler
-
 
     def get_console_handler(self, is_debug: bool):
         if is_debug:
@@ -87,15 +93,15 @@ class MQGALog(object):
         return console_handler
     
     def set_debug(self):
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.removeHandler(self.std_handler)
+        self.setLevel(self.TempLevel)
+        self.file_handler.setLevel(logging.DEBUG)
+        self.removeHandler(self.std_handler)
         self.std_handler = self.get_console_handler(True)
-        self.logger.addHandler(self.std_handler)
+        self.std_handler.setLevel(self.TempLevel)
+        self.addHandler(self.std_handler)
 
-logset = MQGALog()
+log = MQGALog()
 if args.debug:  # 设置log输出样式
-    logset.set_debug()
-log = logset.logger
-if args.debug:  # 设置log输出样式
-    log.debug("已进入debug mode")
+    log.set_debug()
+    log.temp("已进入debug mode")
 
