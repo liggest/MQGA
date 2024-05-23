@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from mqga.connection.ws import WS
     import websockets
 
+import logging
 import asyncio
 from enum import Enum, auto
 from functools import cached_property
@@ -59,7 +60,8 @@ class WSInner:
     async def handle(self, data: websockets.Data):
         try:
             payload = self.ReceivePayloadsType.validate_json(data)
-            log.debug(f"{type(payload)!r} {payload.model_dump()}")
+            # log.debug(f"{type(payload)!r} {payload.model_dump()}")
+            log_payload("==>", payload)
         except ValidationError as e:
             payload = None
             log.exception(f"raw: {data!r}, error:{e.json(include_url=False)!r}", exc_info=e)
@@ -108,7 +110,8 @@ class WSInner:
 
     async def _send_payload(self, payload: Payload):
         assert self.ws.client, "发送 payload 时 client 应该已经初始化"
-        log.debug(payload.model_dump(by_alias=True))
+        # log.debug(payload.model_dump(by_alias=True))
+        log_payload("<==", payload)
         await self.ws.client.send(payload.model_dump_json(by_alias=True))
 
     def _start_heartbeat(self):
@@ -126,3 +129,11 @@ class WSInner:
 
     async def heartbeat(self):
         await self._send_payload(HeartbeatPayload(data=self._last_seq_no or None))
+
+def log_payload(head, payload: Payload):
+    if not log.isEnabledFor(logging.DEBUG):
+        return
+    if isinstance(payload, (HeartbeatPayload, HeartbeatAckPayload)):  # TODO 心跳日志显得有些啰嗦
+        log.debug(f"{head} {payload.__class__.__name__}({payload.model_dump(by_alias=True)!r})")
+    else:
+        log.debug(f"{head} {payload.__class__.__name__}({payload.model_dump(by_alias=True)!r})")
