@@ -72,6 +72,7 @@ logging.setLoggerClass(MQGALog)
 logging.addLevelName(TempLevel, 'TEMP')
 
 # 创建log对象
+_root = logging.getLogger()
 log: MQGALog = logging.getLogger(DEFAULT_LOGGER_NAME)
 log.setLevel(logging.DEBUG)
 
@@ -83,7 +84,8 @@ filehandler.setLevel(logging.DEBUG)
 filehandler.suffix = "%Y-%m-%d.log"
 filehandler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}\.log$")
 filehandler.setFormatter(FileFormatter(File_FMT, DATEFMT))
-log.addHandler(filehandler)
+_root.addHandler(filehandler)  # 先挂到 root logger 上
+# log.addHandler(filehandler)
 
 # 控制台输出
 console = logging.StreamHandler()
@@ -91,7 +93,8 @@ console.setLevel(logging.INFO)
 if args.debug:
     console.setLevel(TempLevel)
 console.setFormatter(ColoredFormatter(console.level))
-log.addHandler(console)
+_root.addHandler(console)
+# log.addHandler(console)
 
 # 调试模式
 if args.debug:
