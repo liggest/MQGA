@@ -5,7 +5,10 @@ description = "Collection of MQGA plugins"
 authors = [
     {name = "",email = ""},
 ]
-dependencies = []
+dependencies = [
+    "ygoutil>=0.2.2",
+    "typst>=0.11.0",
+]
 requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
@@ -13,3 +16,5 @@ license = {text = "MIT"}
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm]
