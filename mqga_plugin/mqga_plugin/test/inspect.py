@@ -37,19 +37,19 @@ def test():
 {message.attachments = !r}""".replace(".", "[.]")
 
 
-async def reply_media_or_timeout(ctx: BotContext, url: str, content: str = "", file_type: FileType = FileType.图片):
+async def reply_media_or_timeout(ctx: BotContext, file_or_url: str | bytes, content: str = "", file_type: FileType = FileType.图片):
     try:
-        await ctx.bot.api.reply_media(ctx.payload, url, content=content, file_type=file_type)
+        await ctx.bot.api.reply_media(ctx.payload, file_or_url, content=content, file_type=file_type)
     except httpx.ReadTimeout:
         await ctx.bot.api.reply_text(ctx.payload, "超时啦 > <")
 
 # @on_message.filter_by(lambda: (ctx.matched << ctx.message.content.strip().lower()).startswith("/img"))
 @on_message.filter_by(Filters.command("img", context=ctx))
 @on_message.filter_by(Filters.command("image", context=ctx))
-async def img():
+def image(url=""):
     # cmd: str = ctx.matched.filter_by[0]
     # url = cmd.removeprefix("/img").lstrip()
-    url = ctx.matched.filter_by[-1]
+    url = url or ctx.matched.filter_by[-1]
     # file = await ctx.bot.api.group.file(ctx.in_group.message.group_id, url)
     # log.debug(f"FileInfo: {file!r}")
     # return ctx.bot.api.group.reply_media(file, ctx.payload)
@@ -57,28 +57,30 @@ async def img():
     return reply_media_or_timeout(ctx, url)
 
 @on_message.filter_by(Filters.command("audio", context=ctx))
-async def audio():
-    url = ctx.matched.filter_by[-1]
+def audio(url=""):
+    url = url or ctx.matched.filter_by[-1]
     return reply_media_or_timeout(ctx, url, file_type=FileType.语音)
 
 @on_message.filter_by(Filters.command("video", context=ctx))
-async def video():
-    url = ctx.matched.filter_by[-1]
+def video(url=""):
+    url = url or ctx.matched.filter_by[-1]
     return reply_media_or_timeout(ctx, url, file_type=FileType.视频)
+
+if TYPE_CHECKING:
+    from typing import Coroutine, Callable, Any
+    image: Callable[[str], Coroutine[Any, Any, None]]
+    audio: Callable[[str], Coroutine[Any, Any, None]]
+    video: Callable[[str], Coroutine[Any, Any, None]]
 
 class Config(SimpleConfig(this_plugin.data_dir / "admin.toml")):
     groups: dict[str, list[IDUser]] = {
         "12345": [IDUser(id="ABCDE")]
     }
 
-_config = None
-
 def _get_config():
-    global _config
-    if _config is None:
-        _config = Config()
-        _config.save()
-    return _config
+    if not Config.is_init():
+        Config.get().save()
+    return Config._instance
 
 def is_admin():
     _config = _get_config()

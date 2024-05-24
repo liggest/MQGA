@@ -38,13 +38,23 @@ class Button:
     
     @property
     def text(self):
-        """ 文本 """
-        return self._appearance["label"]
+        """ 文本，修改此属性会同时修改通常文本和按下后文本 """
+        return self._appearance["label"] or self._appearance["visited_label"]
     
     @text.setter
     def text(self, value: str):
         self._appearance["label"] = value
+        self._appearance["visited_label"] = value
     
+    @property
+    def normal_text(self):
+        """ 通常文本 """
+        return self._appearance["label"]
+    
+    @normal_text.setter
+    def normal_text(self, value: str):
+        self._appearance["label"] = value
+
     @property
     def pressed_text(self):
         """ 按下后文本 """

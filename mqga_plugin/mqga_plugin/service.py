@@ -5,6 +5,9 @@ from mqga.log import log
 
 from mqga_plugin.toolz import Filters
 
+from mqga.plugin import plugin_info
+plugin_info("service", description="服务列表（")
+
 @on_message.filter_by(Filters.prefix("/服务列表"))
 def service():
     return """--------服务列表--------
@@ -29,7 +32,8 @@ def plugin_list():
         name = name.replace('.', '_')
         assert isinstance(plugin, PluginModule)
         if hasattr(plugin, "name"):
-            yield f"{plugin.name}({name})"
+            description = f"\t{plugin.description}" if plugin.description != PluginModule.description else ""
+            yield f"{plugin.name}({name}){description}"
         else:
             yield name
 

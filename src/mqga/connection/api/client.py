@@ -4,6 +4,9 @@ from functools import cached_property
 import asyncio
 import time
 import json
+import logging
+import sys
+from reprlib import Repr
 
 from typing import TYPE_CHECKING
 
@@ -95,25 +98,29 @@ class APIClient:
     async def _get(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
-        log.debug(f"GET {api} {params!r}")
+        log_debug_http(f"GET {api}", params)
+        # log.debug(f"GET {api} {params!r}")
         return self._handle_response(await self._client.get(api, params=params, timeout=timeout, **kw))
 
-    async def _post(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post(self, api: str, json: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
-        log.debug(f"POST {api} {data!r}")
-        return self._handle_response(await self._client.post(api, json=data, timeout=timeout, **kw))
+        # log.debug(f"POST {api} {json if json is not None else kw.get('data')!r}")
+        log_debug_http(f"POST {api}", json if json is not None else kw.get('data'))
+        return self._handle_response(await self._client.post(api, json=json, timeout=timeout, **kw))
 
-    async def _put(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _put(self, api: str, json: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
-        log.debug(f"PUT {api} {data!r}")
-        return self._handle_response(await self._client.put(api, json=data, timeout=timeout, **kw))
+        # log.debug(f"PUT {api} {json if json is not None else kw.get('data')!r}")
+        log_debug_http(f"PUT {api}", json if json is not None else kw.get('data'))
+        return self._handle_response(await self._client.put(api, json=json, timeout=timeout, **kw))
 
     async def _delete(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
-        log.debug(f"DELETE {api} {params!r}")
+        # log.debug(f"DELETE {api} {params!r}")
+        log_debug_http(f"DELETE {api}", params)
         return self._handle_response(await self._client.delete(api, params=params, timeout=timeout, **kw))
 
     def _handle_response(self, response: httpx.Response):
@@ -127,6 +134,7 @@ class APIClient:
         try:
             data: dict = response.json()
         except json.JSONDecodeError as e:
+            log.error(f"{response.text = !r}")
             if http_error:
                 raise http_error # json 解析不出来的情况下，如果有 http_error 就先报出来
             raise e  # json 解析出错
@@ -135,8 +143,10 @@ class APIClient:
                 raise APIError(data) from http_error
             else:
                 raise APIError(data)
-        log.debug(f"{response.status_code} {data or response.is_success !r}")
-        return data or response.is_success
+        # log.debug(f"{response.status_code} {data or response.is_success !r}")
+        result = data or response.is_success
+        log_debug_http(response.status_code, result)
+        return result
 
     async def _ensure_token(self):
         if self._token:
@@ -199,3 +209,15 @@ class APIClient:
         if self._client:
             await self._client.aclose()
         log.info("API 停止")
+
+ShorterRepr = Repr()
+ShorterRepr.maxlong = ShorterRepr.maxdict = ShorterRepr.maxlist = sys.maxsize
+ShorterRepr.maxstring = 100
+# 不限制 dict、list 和总长度
+# 但会限制 str 长度
+# 目前消息 id 长度为 97，能完整显示
+
+def log_debug_http(head, data):
+    if not log.isEnabledFor(logging.DEBUG):
+        return
+    log.debug(f"{head} {ShorterRepr.repr(data)}")

@@ -10,6 +10,9 @@ from mqga_plugin.toolz import Filters
 from mqga_plugin.toolz.markdown import register_markdown, keyboard
 from mqga_plugin.toolz.markdown.keyboard import JumpButton, CommandButton, InteractButton
 
+from mqga.plugin import plugin_info
+plugin_info("md_test", author="liggest", description="测试 MD 和按钮")
+
 md_test = register_markdown("测试模板", "测试用的模板", {"md7": "**", "md8": "你好，世界", "md9": "**"})
 
 split_ptn = re.compile(r"\*+|_+|#+|~+|\]\(|\d\.|-|>|`|//")
@@ -29,6 +32,9 @@ def split_md(content: str):
         current += content[idx:]
         yield current
 
+def content2params(content: str):
+    return {f"md{i}": part for i, part in enumerate(split_md(content))}
+
 async def report_api_error(coro):
     try:
         return await coro
@@ -39,7 +45,7 @@ async def report_api_error(coro):
 @on_message.filter_by(Filters.command("md", context=ctx))
 async def md():
     md_content: str = ctx.matched.filter_by[-1]
-    params = {f"md{i}": part for i, part in enumerate(split_md(md_content))}
+    params = content2params(md_content)
     return report_api_error(md_test.reply_to(ctx.payload, params))
 
 

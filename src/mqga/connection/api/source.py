@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from weakref import WeakKeyDictionary
+from base64 import b64encode
 
 from typing import TYPE_CHECKING
 
@@ -55,13 +56,13 @@ class UnifiedAPI:
         """ 加上渠道的 api 前缀 """
         return await self.client._get(f"{self.Prefix}{api}", params=params, timeout=timeout, **kw)
 
-    async def _post_source(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _post_source(self, api: str, json: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
-        return await self.client._post(f"{self.Prefix}{api}", data=data, timeout=timeout, **kw)
+        return await self.client._post(f"{self.Prefix}{api}", json=json, timeout=timeout, **kw)
 
-    async def _put_source(self, api: str, data: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
+    async def _put_source(self, api: str, json: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
-        return await self.client._put(f"{self.Prefix}{api}", data=data, timeout=timeout, **kw)
+        return await self.client._put(f"{self.Prefix}{api}", json=json, timeout=timeout, **kw)
 
     async def _delete_source(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         """ 加上渠道的 api 前缀 """
@@ -129,13 +130,13 @@ class UnifiedAPI:
 
     async def reply_text(self, payload: EventPayload, content: str) -> RepliedMessage:  # TODO 调整 content 和 payload 的顺序
         """ 以文本回复消息、事件 """
-        return await self._post_source(f"/{self._to_id(payload)}/messages", data=self._message_data(
+        return await self._post_source(f"/{self._to_id(payload)}/messages", json=self._message_data(
             content=content,
             payload=payload,
             type=MessageType.Text,  # TODO 其它消息类型
         ))
 
-    async def file(self, payload_or_id: EventPayload | str, url: str, file_type: FileType = FileType.图片, send=False) -> FileInfo:
+    async def file(self, payload_or_id: EventPayload | str, file_or_url: str | bytes, file_type: FileType = FileType.图片, send=False) -> FileInfo:
         """ 
         获取文件信息，用于发送富媒体消息
 
@@ -144,21 +145,26 @@ class UnifiedAPI:
         file_type  文件类型\\
         send = True 占用主动消息频次
         """
-        return await self._post_source(f"/{self._to_id(payload_or_id)}/files", data={
+        data = {
             "file_type": file_type,
-            "url": url,
+            # "url": url,
             "srv_send_msg": send
-            # "file_data":  暂未支持
-        })
+            # "file_data":  暂未支持 / base64?
+        }
+        if isinstance(file_or_url, bytes):
+            data["file_data"] = b64encode(file_or_url).decode("ascii")
+        elif isinstance(file_or_url, str):
+            data["url"] = file_or_url
+        return await self._post_source(f"/{self._to_id(payload_or_id)}/files", json=data)
 
-    async def reply_media(self, payload: EventPayload, file_or_url: str | FileInfo, content: str = "", file_type: FileType = FileType.图片) -> RepliedMessage:
+    async def reply_media(self, payload: EventPayload, file_or_url: str | FileInfo | bytes, content: str = "", file_type: FileType = FileType.图片) -> RepliedMessage:
         """ 以富媒体（图文等）回复消息、事件 """
         source_id = self._to_id(payload)
-        if isinstance(file_or_url, str):
+        if isinstance(file_or_url, (str, bytes)):  # url 或 本地文件
             file_or_url = await self.file(source_id, file_or_url, file_type)
         data = self._message_data(content=content, payload=payload, type=MessageType.Media)
-        self._message_media_data(data, file_or_url)
-        return await self._post_source(f"/{source_id}/messages", data=data)
+        data = self._message_media_data(data, file_or_url)
+        return await self._post_source(f"/{source_id}/messages", json=data)
     
     # @staticmethod
     # def _md_data(template: str, params: dict[str, str] = None, content: str = "") -> MarkdownTemplate | MarkdownContent:
@@ -195,11 +201,11 @@ class UnifiedAPI:
         # md = self._md_data(template, params, content)
         self._message_md_data(data, markdown)
         self._message_keyboard_data(data, keyboard)
-        return await self._post_source(f"/{self._to_id(payload)}/messages", data=data)
+        return await self._post_source(f"/{self._to_id(payload)}/messages", json=data)
 
     async def button_interacted(self, payload: ButtonInteractEventPayload, result: InteractionResult) -> bool:
         """ 向 QQ 告知按钮交互带来的 `payload` 事件已处理，结果为 `result`  """
-        return await self._put(f"/interactions/{payload.data.id}", data={ "code": result })
+        return await self._put(f"/interactions/{payload.data.id}", json={ "code": result })
 
 
 class ChannelAPI(UnifiedAPI):
@@ -230,12 +236,15 @@ class ChannelAPI(UnifiedAPI):
         return ChannelMessage(**await super().reply_text(payload, content))
 
     @staticmethod
-    def _message_media_data(data: dict, media: str | None = None):
+    def _message_media_data(data: dict, media: str | bytes | None = None):
         if media:
-            data["image"] = media
+            if isinstance(media, str):
+                data["image"] = media
+            elif isinstance(media, bytes):
+                data["files"] = {"file_image": media}
         return data
 
-    async def reply_media(self, payload: EventPayload, file_or_url: str, content: str = "", file_type: FileType = FileType.图片):
+    async def reply_media(self, payload: EventPayload, file_or_url: str | bytes, content: str = "", file_type: FileType = FileType.图片):
         """ 
             以图文回复消息、事件 
             
@@ -243,8 +252,8 @@ class ChannelAPI(UnifiedAPI):
         """
         # 频道不需要用 await self.file 拿到 FileInfo
         data = self._message_data(content=content, payload=payload, type=MessageType.Media)
-        self._message_media_data(data, file_or_url)
-        return ChannelMessage(**await self._post_source(f"/{self._to_id(payload)}/messages", data=data))
+        data = self._message_media_data(data, file_or_url)
+        return ChannelMessage(**await self._post_source(f"/{self._to_id(payload)}/messages", files = data.pop("files", None), json=data))
 
     async def reply_md(self, payload: EventPayload, md: MarkdownTemplate | MarkdownCustom | None = None, keyboard: KeyboardTemplate | KeyboardCustom | None = None):
         return ChannelMessage(**await super().reply_md(payload, md, keyboard))  # 好像目前频道无法用被动消息回复 markdown

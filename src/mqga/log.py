@@ -1,5 +1,4 @@
 import os
-import sys
 import re
 import logging
 from mqga.args import args
@@ -7,12 +6,14 @@ from logging.handlers import TimedRotatingFileHandler
 
 BOOTPath = os.getcwd()
 PATH = os.path.abspath('.') + '/log/'
-DEFAULT_LOGGER_NAME = "MQGA"
+DEFAULT_LOGGER_NAME = "MQGALog"
 
 # \033[3xm x的取值范围0-7，分别对应下面几种颜色
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
+TempLevel = 5
 COLORS = {
+    'TEMP': CYAN,
     'WARNING': YELLOW,
     'INFO': GREEN,
     'DEBUG': BLUE,
@@ -31,11 +32,15 @@ COLORS = {
 DATEFMT = '%Y-%m-%d %H:%M:%S'
 Default_FMT = "\033[1;38m[\033[0m%(levelname)s\033[1;38m]\033[0m %(message)s"
 Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m<- %(pathname)s:%(lineno)s]\033[0m %(message)s"
-File_FMT = "[%(levelname)s <-%(pathname)s:%(lineno)s]\n%(asctime)s: %(message)s"
+File_FMT = "%(asctime)s | %(levelname)s | %(pathname)s:%(lineno)s : %(message)s"
 
 # 变更等级颜色
 class ColoredFormatter(logging.Formatter):
-    def __init__(self, msg):
+    def __init__(self, level):
+        if level == TempLevel:
+            msg = Console_FMT
+        else:
+            msg = Default_FMT
         logging.Formatter.__init__(self, msg)
 
     def format(self, record):
@@ -54,48 +59,44 @@ class FileFormatter(logging.Formatter):
         record.pathname = record.pathname.replace(BOOTPath, ".")
         return logging.Formatter.format(self, record)
 
+# 建立log
 
-class MQGALog(object):
-    def __init__(self):
-        if not os.path.exists(PATH):
-            os.mkdir(PATH)
-        self.logger = logging.getLogger(DEFAULT_LOGGER_NAME)
-        # self.file_formatter = logging.Formatter(fmt=File_FMT, datefmt=DATEFMT)
-    
-        self.file_handler = self.get_file_handler()
-        self.std_handler = self.get_console_handler(False)
-        self.logger.addHandler(self.file_handler)
-        self.logger.addHandler(self.std_handler)
+class MQGALog(logging.Logger):
+    def __init__(self, name):
+        logging.Logger.__init__(self, name)
 
-        self.logger.setLevel(logging.INFO)
+    def temp(self, message, *args, **kws):
+        self.log(TempLevel, message, *args, **kws)
 
-    def get_file_handler(self):
-        filehandler = TimedRotatingFileHandler(filename=f"{PATH}dump.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
-        filehandler.suffix = "%Y-%m-%d"
-        filehandler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-        filehandler.setFormatter(FileFormatter(File_FMT, DATEFMT))
-        return filehandler
+logging.setLoggerClass(MQGALog)
+logging.addLevelName(TempLevel, 'TEMP')
 
+# 创建log对象
+_root = logging.getLogger()
+log: MQGALog = logging.getLogger(DEFAULT_LOGGER_NAME)
+log.setLevel(logging.DEBUG)
 
-    def get_console_handler(self, is_debug: bool):
-        if is_debug:
-            fmt = Console_FMT
-        else:
-            fmt = Default_FMT
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(ColoredFormatter(fmt))
-        return console_handler
-    
-    def set_debug(self):
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.removeHandler(self.std_handler)
-        self.std_handler = self.get_console_handler(True)
-        self.logger.addHandler(self.std_handler)
+# 文件输出
+if not os.path.exists(PATH):
+    os.makedirs(PATH)
+filehandler = TimedRotatingFileHandler(filename=f"{PATH}dump.log", when="midnight", interval=1, backupCount=7, encoding="utf-8")
+filehandler.setLevel(logging.DEBUG)
+filehandler.suffix = "%Y-%m-%d.log"
+filehandler.extMatch = re.compile(r"^\d{4}-\d{2}-\d{2}\.log$")
+filehandler.setFormatter(FileFormatter(File_FMT, DATEFMT))
+_root.addHandler(filehandler)  # 先挂到 root logger 上
+# log.addHandler(filehandler)
 
-logset = MQGALog()
-if args.debug:  # 设置log输出样式
-    logset.set_debug()
-log = logset.logger
-if args.debug:  # 设置log输出样式
-    log.debug("已进入debug mode")
+# 控制台输出
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+if args.debug:
+    console.setLevel(TempLevel)
+console.setFormatter(ColoredFormatter(console.level))
+_root.addHandler(console)
+# log.addHandler(console)
 
+# 调试模式
+if args.debug:
+    log.setLevel(TempLevel)
+    log.temp("已进入DEBUG模式")
