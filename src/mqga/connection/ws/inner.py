@@ -133,7 +133,7 @@ class WSInner:
 def log_payload(head, payload: Payload):
     if not log.isEnabledFor(logging.DEBUG):
         return
-    if isinstance(payload, (HeartbeatPayload, HeartbeatAckPayload)):  # TODO 心跳日志显得有些啰嗦
-        log.debug(f"{head} {payload.__class__.__name__}({payload.model_dump(by_alias=True)!r})")
+    if isinstance(payload, (HeartbeatPayload, HeartbeatAckPayload)):  # 心跳日志显得有些啰嗦，用比 DEBUG 还低的等级打印到控制台
+        log.temp(f"{head} {payload.__class__.__name__}({payload.model_dump(by_alias=True)!r})")
     else:
         log.debug(f"{head} {payload.__class__.__name__}({payload.model_dump(by_alias=True)!r})")
