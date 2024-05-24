@@ -60,17 +60,19 @@ class FileFormatter(logging.Formatter):
         return logging.Formatter.format(self, record)
 
 # 建立log
+
 class MQGALog(logging.Logger):
     def __init__(self, name):
         logging.Logger.__init__(self, name)
+
     def temp(self, message, *args, **kws):
-        if self.isEnabledFor(TempLevel):
-            self._log(TempLevel, message, args, **kws)
+        self.log(TempLevel, message, *args, **kws)
+
 logging.setLoggerClass(MQGALog)
 logging.addLevelName(TempLevel, 'TEMP')
 
 # 创建log对象
-log = logging.getLogger(DEFAULT_LOGGER_NAME)
+log: MQGALog = logging.getLogger(DEFAULT_LOGGER_NAME)
 log.setLevel(logging.DEBUG)
 
 # 文件输出
