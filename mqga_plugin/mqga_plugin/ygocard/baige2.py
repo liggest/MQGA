@@ -54,7 +54,7 @@ def update_card_btns(ids: list[IDCard]):
         yield row
 
 # @on_message.filter_by(Filters.command("2yc", ignore_case=True, context=ctx))
-@on_message.filter_by(Filters.command("文字查卡", context=ctx))
+@on_message.filter_by(Filters.command(cmd_name := "文字查卡", context=ctx))
 @on_message.filter_by(Filters.command("文字卡查", context=ctx))
 async def ygocard2(query=""):
     query = query or str("".join(ctx.matched.filter_by)).strip()
@@ -70,7 +70,7 @@ async def ygocard2(query=""):
     card_content = "\n".join(f"{idx} {card.name}" for idx, card in enumerate(page_cards))
     md_content = f"""{Snippet.at(ctx_user_id())} 「{query}」的查询结果\n```\n{card_content}\n```"""
     row = update_page_btn(page, last, query, left_btn, right_btn, page_btn)
-    page_btn.command = f"第二查卡 {query} 页="
+    page_btn.command = f"{cmd_name} {query} 页="
     return ctx.bot.api.reply_md(ctx.payload, 
                                 md_test.with_params(content2params(md_content)), 
                                 by_buttons(*update_card_btns(page_cards), row))
