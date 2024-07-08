@@ -104,6 +104,8 @@ class UnifiedAPI:
         if isinstance(payload.data, Message):
             data["msg_id"] = payload.data.id
         else:
+            if not payload.id:
+                raise ValueError(f"无法回复 {payload!r}，它既不是消息，也没有事件 ID")
             data["event_id"] = payload.id  # TODO 确定所有能回复的 payload 类型
             # 目前好像是用 payload 最外面的 id
             # getattr(payload.data, "id")
