@@ -49,8 +49,9 @@ class Intents(IntFlag):
     """ 论坛事件（公域） """
     AUDIO_OR_LIVE_CHANNEL_MEMBER = 1 << 19
     """ 音视频 / 直播子频道成员 """
-    GROUP_PRIVATE_MESSAGES = 1 << 25  # 暂定
-    """ 群、私聊消息 """
+    # GROUP_PRIVATE_MESSAGES = 1 << 25  # 暂定
+    GROUP_PRIVATE_EVENT = 1 << 25
+    """ 群、私聊事件 """
     INTERACTION  = 1 << 26
     """ 消息按钮交互事件 """
     MESSAGE_AUDIT = 1 << 27
@@ -233,7 +234,7 @@ class EventType(str, Enum):
     """ 被删除好友 """
     PrivateMessageDisable = "C2C_MSG_REJECT"
     """ 关闭私聊消息通知 """
-    PrivateMessageEnable = "C2C_MSG_REJECT"
+    PrivateMessageEnable = "C2C_MSG_RECEIVE"
     """ 开启私聊消息通知 """
 
 
@@ -403,8 +404,16 @@ class EventType2Intent(EventPair, Enum):
     PUBLIC_MESSAGE_DELETE = (Intents.PUBLIC_GUILD_MESSAGES, EventType.GulidMessageDelete)
 
     # TODO 群和私聊
-    C2C_MESSAGE_CREATE = (Intents.GROUP_PRIVATE_MESSAGES, EventType.PrivateMessageCreate)
-    GROUP_AT_MESSAGE_CREATE = (Intents.GROUP_PRIVATE_MESSAGES, EventType.GroupAtMessageCreate)
+    C2C_MESSAGE_CREATE = (Intents.GROUP_PRIVATE_EVENT, EventType.PrivateMessageCreate)
+    FRIEND_ADD = (Intents.GROUP_PRIVATE_EVENT, EventType.PrivateFriendAdd)
+    FRIEND_DEL = (Intents.GROUP_PRIVATE_EVENT, EventType.PrivateFirendDelete)
+    C2C_MSG_REJECT = (Intents.GROUP_PRIVATE_EVENT, EventType.PrivateMessageDisable)
+    C2C_MSG_RECEIVE = (Intents.GROUP_PRIVATE_EVENT, EventType.PrivateMessageEnable)
+    GROUP_AT_MESSAGE_CREATE = (Intents.GROUP_PRIVATE_EVENT, EventType.GroupAtMessageCreate)
+    GROUP_ADD_ROBOT = (Intents.GROUP_PRIVATE_EVENT, EventType.GroupJoin)
+    GROUP_DEL_ROBOT = (Intents.GROUP_PRIVATE_EVENT, EventType.GroupDelete)
+    GROUP_MSG_REJECT = (Intents.GROUP_PRIVATE_EVENT, EventType.GroupMessageDisable)
+    GROUP_MSG_RECEIVE = (Intents.GROUP_PRIVATE_EVENT, EventType.GroupMessageEnable)
 
 class RoleID(str, Enum):
     """ 身份组 ID """
