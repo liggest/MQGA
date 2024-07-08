@@ -23,7 +23,7 @@ def by_template(id: str, params: dict[str, str | list[str]] | None = None) -> Ma
         ]
     return md
 
-class Snippet:
+class LegacySnippet:
     """ QQ markdown 文本交互快捷片段 """
 
     @staticmethod
@@ -50,3 +50,24 @@ class Snippet:
     def emoji(emoji_id: str):
         """ emoji_id 对应的系统表情 """
         return f"<emoji:{emoji_id}>"
+
+class Snippet(LegacySnippet):
+    """ QQ markdown 文本交互快捷片段 """
+
+    @staticmethod
+    def at(user_id: str):
+        """ @user_id """
+        return f'<qqbot-at-user id="{user_id}" />'
+    
+    @staticmethod
+    def at_all():
+        """ @全体成员 """
+        return "<qqbot-at-everyone />"
+
+    @staticmethod
+    def inline_command(text: str, command: str, enter = False, reply = False):  # 也编码 "/"
+        """ MD 文本指令 """
+        safe = ""
+        if enter:
+            return f'<qqbot-cmd-enter text="{quote(command, safe=safe)}" show="{quote(text, safe=safe)}" />'
+        return f'<qqbot-cmd-input text="{quote(command, safe=safe)}" show="{quote(text, safe=safe)}" reference="{str(reply).lower()}" />'
