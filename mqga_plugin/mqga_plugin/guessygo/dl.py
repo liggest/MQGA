@@ -56,34 +56,37 @@ class guessygoZip(SimpleConfig(guessygo.data_dir / "version.toml")):
 
 @on_event.of(EventType.WSReady)
 @on_message.full_match(r"更新卡包")    
-def update():
+async def update():
     zip_file = guessygo.data_dir / "cards.zip"
     try:
         config = guessygoZip.get()
         if config.lastTime == datetime.now().strftime("%Y-%m-%d"):  # 每日更新
             return
-        r = httpx.get(config.version_url,headers=headers, timeout=(10,15))
-        if r.status_code != 200:
-            log.error(f"[{r.status_code}]无法连接网站{r.url}")
-            return
-        if r.text == config.md5:
-            log.info(f"[guessygo]卡包未更新")
-            return
-        config.md5 = r.text
-        config.lastTime = datetime.now().strftime("%Y-%m-%d")
-        config.save()
-        url = "https://ygocdb.com/api/v0/cards.zip"
-        r = httpx.get(url,headers=headers, timeout=(10,15))
-        if r.status_code != 200:
-            log.error(f"[{r.status_code}]无法连接网站{r.url}")
-            return
+        async with httpx.AsyncClient(headers=headers, timeout=(10,15)) as client:
+            r = await client.get(config.version_url)
+            # r = httpx.get(config.version_url,headers=headers, timeout=(10,15))
+            if r.status_code != 200:
+                log.error(f"[{r.status_code}]无法连接网站{r.url}")
+                return
+            if r.text == config.md5:
+                log.info("[guessygo]卡包未更新")
+                return
+            config.md5 = r.text
+            config.lastTime = datetime.now().strftime("%Y-%m-%d")
+            config.save()
+            url = "https://ygocdb.com/api/v0/cards.zip"
+            r = await client.get(url)
+            # r = httpx.get(url,headers=headers, timeout=(10,15))
+            if r.status_code != 200:
+                log.error(f"[{r.status_code}]无法连接网站{r.url}")
+                return
         try:
             with open(zip_file,"wb") as f:
                 f.write(r.content)
         except Exception as e:
             log.error(e)
             return
-        log.info(f"[guessygo]卡包已更新")
+        log.info("[guessygo]卡包已更新")
     finally:
         cards_Info = None
         with zipfile.ZipFile(zip_file,"r") as zip_ref:

@@ -2,7 +2,7 @@
 import re
 import httpx
 import random 
-import base64
+# import base64
 from math import sqrt
 from io import BytesIO
 from PIL import Image
@@ -36,7 +36,7 @@ async def _do_timer(gid):
                 content=f"时间超时,游戏结束\n卡名是:\n{room_info.card['cn_name']}",
                 file_or_url=f"https://cdn.233.momobako.com/ygopro/pics/{room_info.card['id']}.jpg",
             )
-    await game_rooms.del_room(gid)
+    game_rooms.del_room(gid)
 
 @on_message.regex(r"\s*/猜卡游戏$")
 async def start_game():
@@ -48,17 +48,17 @@ async def start_game():
     else:
         id = -message.author.id
     room = game_rooms.get_room_state(id)
-    if room != None:
+    if room is not None:
         return "已经有游戏在进行了"
     poor = card_poor
-    if poor == None:
+    if poor is None:
         log.debug("卡池为空,正在更新卡池")
         poor =  Get_Poor()
     max_index = 0
     card_data:dict = poor.pick()
-    if card_data == None or poor.len() == 0:
+    if card_data is None or poor.len() == 0:
         return "卡池没卡,请先更新卡池"
-    while not download_card_pictrue(card_data.get("id",0)) and max_index < 5:
+    while not await download_card_pictrue(card_data.get("id",0)) and max_index < 5:
         max_index = max_index+1
         card_data = poor.pick()
     if max_index >= 5:
@@ -69,7 +69,8 @@ async def start_game():
     new_room.payload = ctx.payload
     new_room.card = card_data
     new_room.picture = pictrue
-    task_end = asyncio.create_task(_do_timer(id))
+    # task_end = asyncio.create_task(_do_timer(id))
+    task_end = ctx.bot._em.background_task(_do_timer(id))
     new_room.task = task_end
     game_rooms.update_room_state(id,new_room)
     return ctx.bot.api.reply_media(ctx.payload, 
@@ -88,7 +89,7 @@ async def answer():
     else:
         id = -message.author.id
     room = game_rooms.get_room_state(id)
-    if room == None:
+    if room is None:
         return
     match = ctx.matched.regex
     anser = match.group(1)
@@ -96,7 +97,7 @@ async def answer():
     if len(anser) < need_length:
         return "请输入", need_length, "字以上"
     anser_list = list(room.get_anser())
-    print(anser_list)
+    log.debug(anser_list)
     anser, percentage = match_name(anser_list, anser)
     content = f"恭喜你答对了\n卡名是:\n{room.card['cn_name']}\n正确率:{percentage}%"
     if anser != room.card["cn_name"]:
@@ -120,7 +121,7 @@ async def answer():
     return f"答案不对哦，加油啊。\n还有{6-room.wrong_times}次答题机会"
 
 @on_message.regex(r"^\s*提示")
-async def answer():
+async def answer_hint():
     message = ctx.message
     if isinstance(message, ChannelMessage):
         id = message.channel_id
@@ -129,16 +130,16 @@ async def answer():
     else:
         id = -message.author.id
     room = game_rooms.get_room_state(id)
-    if room == None:
+    if room is None:
         return
     room.tick_times = room.tick_times + 1
     if room.tick_times > 3:
-        return f"  已经没有提示了,加油啊"
+        return "  已经没有提示了,加油啊"
     game_rooms.update_room_state(id,room)
     return getCue(room.card,room.tick_times-1)
 
 @on_message.regex(r"^\s*取消")
-async def answer():
+async def answer_cancel():
     message = ctx.message
     if isinstance(message, ChannelMessage):
         id = message.channel_id
@@ -147,7 +148,7 @@ async def answer():
     else:
         id = -message.author.id
     room = game_rooms.get_room_state(id)
-    if room == None:
+    if room is None:
         return
     if room.auther != message.author.id:
         return "只有猜题人可以取消"
@@ -158,15 +159,17 @@ async def answer():
                 file_or_url=f"https://cdn.233.momobako.com/ygopro/pics/{room.card['id']}.jpg",
                 )
 
-def download_card_pictrue(cid):
-    pictrue_path = guessygo.data_dir / f"pictures/"
+async def download_card_pictrue(cid):
+    pictrue_path = guessygo.data_dir / "pictures/"
     if not pictrue_path.exists():
         pictrue_path.mkdir(parents=True, exist_ok=True)
     pictrue_path = guessygo.data_dir / f"pictures/{cid}.jpg"
     if pictrue_path.exists():
         return True
     picherf = f"https://cdn.233.momobako.com/ygopro/pics/{cid}.jpg"
-    r = httpx.get(picherf,headers=headers, timeout=(10,15))
+    async with httpx.AsyncClient() as client:
+        # r = httpx.get(picherf,headers=headers, timeout=(10,15))
+        r = await client.get(picherf,headers=headers, timeout=(10,15))
     if r.status_code != 200:
         log.error(f"[{r.status_code}]无法连接网站{r.url}")
         return False
@@ -321,7 +324,7 @@ def match_name(cardName:list, text:str):
     if an == "":
         return "",0
     for anser in cardName:
-        print(anser)
+        log.debug(anser)
         cn = remove_punctuation(anser).lower()
         if an in cn:
             return anser, len(an)*100//len(anser)
