@@ -1,15 +1,19 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from asyncio import Task
 
 class GameState():
     """ 游戏状态 """
     auther = None # 猜题人
     payload = None # 追击聊天记录
-    card:dict = None # 卡片信息
+    card: dict = None # 卡片信息
     picture = None # 图片信息
     last_time = 0 # 答题时间
     wrong_times = 0 # 错误次数
     tick_times = 0 # 提示次数
     answer_times = None # 答题次数
-    task = None # 任务
+    task: Task = None # 任务
 
     def get_anser(self)-> list:
         namelist = ["cn_name","nwbbs_n","cnocg_n","md_name","jp_name","jp_ruby","en_name","sc_name"]
