@@ -60,7 +60,7 @@ async def update():
     zip_file = guessygo.data_dir / "cards.zip"
     try:
         config = guessygoZip.get()
-        if config.lastTime == datetime.now().strftime("%Y-%m-%d"):  # 每日更新
+        if zip_file.exists() and config.lastTime == datetime.now().strftime("%Y-%m-%d"):  # 每日更新
             return
         async with httpx.AsyncClient(headers=headers, timeout=(10,15)) as client:
             r = await client.get(config.version_url)
