@@ -6,7 +6,7 @@ from mqga.log import log
 from mqga_plugin.toolz import Filters
 
 from mqga.plugin import plugin_info
-plugin_info("service", description="服务列表（")
+plugin_info("service", description="插件列表（")
 
 def plugin_list():
     yield "插件列表"
