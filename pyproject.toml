@@ -8,8 +8,6 @@ authors = [
     {name = "小女不才只会用膳",email = ""},
 ]
 dependencies = [
-    "tomli==2.0.1",
-    "tomli-w>=1.0.0",
     "pydantic>=2.4.2",
     "httpx>=0.25.0",
     "websockets>=12.0",
