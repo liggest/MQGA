@@ -93,7 +93,7 @@ class APIClient:
     async def _get(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
-        log_debug_http(f"GET {api}", params)
+        log_info_http(f"GET {api}", params)
         # log.debug(f"GET {api} {params!r}")
         return self._handle_response(await self._client.get(api, params=params, timeout=timeout, **kw))
 
@@ -101,21 +101,21 @@ class APIClient:
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
         # log.debug(f"POST {api} {json if json is not None else kw.get('data')!r}")
-        log_debug_http(f"POST {api}", json if json is not None else kw.get('data'))
+        log_info_http(f"POST {api}", json if json is not None else kw.get('data'))
         return self._handle_response(await self._client.post(api, json=json, timeout=timeout, **kw))
 
     async def _put(self, api: str, json: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
         # log.debug(f"PUT {api} {json if json is not None else kw.get('data')!r}")
-        log_debug_http(f"PUT {api}", json if json is not None else kw.get('data'))
+        log_info_http(f"PUT {api}", json if json is not None else kw.get('data'))
         return self._handle_response(await self._client.put(api, json=json, timeout=timeout, **kw))
 
     async def _delete(self, api: str, params: dict | None = None, timeout: float | UseClientDefault = httpx.USE_CLIENT_DEFAULT, **kw):
         await self._ensure_token()
         assert self._client, "发送请求时 client 应该已存在"
         # log.debug(f"DELETE {api} {params!r}")
-        log_debug_http(f"DELETE {api}", params)
+        log_info_http(f"DELETE {api}", params)
         return self._handle_response(await self._client.delete(api, params=params, timeout=timeout, **kw))
 
     def _handle_response(self, response: httpx.Response):
@@ -211,6 +211,11 @@ ShorterRepr.maxstring = 100
 # 不限制 dict、list 和总长度
 # 但会限制 str 长度
 # 目前消息 id 长度为 97，能完整显示
+
+def log_info_http(head, data):
+    if not log.isEnabledFor(logging.INFO):
+        return
+    log.info(f"{head} {ShorterRepr.repr(data)}")
 
 def log_debug_http(head, data):
     if not log.isEnabledFor(logging.DEBUG):
