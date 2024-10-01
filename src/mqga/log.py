@@ -31,7 +31,7 @@ COLORS = {
 
 DATEFMT = '%Y-%m-%d %H:%M:%S'
 Default_FMT = "\033[1;38m[\033[0m%(levelname)s\033[1;38m]\033[0m %(message)s"
-Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38m<- %(pathname)s:%(lineno)s]\033[0m %(message)s"
+Console_FMT = "\033[1;38m[\033[0m%(levelname)s \033[1;38mat %(pathname)s:%(lineno)s]\033[0m %(message)s"
 File_FMT = "%(asctime)s | %(levelname)s | %(pathname)s:%(lineno)s : %(message)s"
 
 # 变更等级颜色

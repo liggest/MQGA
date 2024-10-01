@@ -17,6 +17,7 @@ dependencies = [
     "tomli-w>=1.0.0",
     "tortoise-orm>=0.20.0",
     "pydantic-settings>=2.2.1",
+    "pillow>=10.4.0",
 ]
 requires-python = ">=3.10"
 readme = "README.md"

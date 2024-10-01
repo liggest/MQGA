@@ -14,7 +14,7 @@ def ready():
 # @on_channel_message
 @on_message
 def log_message():
-    log.debug(f"收到消息：{ctx.message!r}")
+    log.info(f"收到消息：{ctx.message!r}")
 
 with channel_only:
 
